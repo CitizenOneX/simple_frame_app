@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:logging/logging.dart';
 
-import 'jpeg_helper.dart';
+import 'src/jpeg_headers.dart';
 
 final _log = Logger("ImageDR");
 
