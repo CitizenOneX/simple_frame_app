@@ -2,6 +2,8 @@ name: simple_frame_app
 description: "Quickstart app scaffolding and standard library functions for Brilliant Frame"
 version: 0.0.1
 homepage:
+repository: https://github.com/CitizenOneX/simple_frame_app
+publish_to: none
 
 environment:
   sdk: '>=3.4.4 <4.0.0'
@@ -10,6 +12,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_blue_plus: ^1.32.12
+  logging: ^1.2.0
 
 dev_dependencies:
   flutter_test:
