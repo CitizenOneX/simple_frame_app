@@ -13,6 +13,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_blue_plus: ^1.32.12
+  image: ^4.2.0
   logging: ^1.2.0
 
 dev_dependencies:
