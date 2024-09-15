@@ -1,18 +1,4 @@
-import 'brilliant_bluetooth.dart';
-
-enum HorizontalAlignment {
-  left,
-  center,
-  right,
-}
-
-enum VerticalAlignment {
-  top,
-  middle,
-  bottom,
-}
-
-class FrameHelper {
+class TextUtils {
   static const _lineHeight = 60;
 
   static const Map<int, int> charWidthMapping = {
@@ -261,56 +247,4 @@ class FrameHelper {
     }
     return output.trimRight();
   }
-
-  static String escapeLuaString(String input) {
-    // Implement your escapeLuaString function here
-    return input.replaceAll('"', '\\"');
-  }
-
-  static Future<void> writeText(BrilliantDevice frame, String text, {int x = 1, int y = 1, int? maxWidth = 640, int? maxHeight,
-                          HorizontalAlignment halign = HorizontalAlignment.left,
-                          VerticalAlignment valign = VerticalAlignment.top,
-                          int charSpacing = 4}) async {
-    if (maxWidth != null) {
-      text = wrapText(text, maxWidth, charSpacing);
-    }
-
-    int totalHeightOfText = getTextHeight(text);
-    int verticalOffset = 0;
-
-    if (valign == VerticalAlignment.middle) {
-      verticalOffset = ((maxHeight ?? (400 - y)) ~/ 2) - (totalHeightOfText ~/ 2);
-    } else if (valign == VerticalAlignment.bottom) {
-      verticalOffset = (maxHeight ?? (400 - y)) - totalHeightOfText;
-    }
-
-    for (String line in text.split("\n")) {
-      int thisLineX = x;
-
-      if (halign == HorizontalAlignment.center) {
-        thisLineX = x + ((maxWidth ?? (640 - x)) ~/ 2) - (getTextWidth(line, charSpacing) ~/ 2);
-      } else if (halign == HorizontalAlignment.right) {
-        thisLineX = x + (maxWidth ?? (640 - x)) - getTextWidth(line, charSpacing);
-      }
-
-      // send the row of text to the frame
-      await frame.sendString('frame.display.text("${escapeLuaString(line)}",$thisLineX,${y + verticalOffset}, {spacing=$charSpacing})', awaitResponse: false);
-      // TODO it should really be possible to send lots of display calls without introducing delays
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      y += _lineHeight;
-      if ((maxHeight != null && y > maxHeight) || y + verticalOffset > 640) {
-        break;
-      }
-    }
-  }
-
-  static Future<void> show(BrilliantDevice frame) async {
-    await frame.sendString('frame.display.show()', awaitResponse: false);
-  }
-
-  static Future<void> clear(BrilliantDevice frame) async {
-    await frame.sendString('frame.display.bitmap(1,1,4,2,15,"\\xFF") frame.display.show()', awaitResponse: false);
-  }
-
 }

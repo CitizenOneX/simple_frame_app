@@ -342,6 +342,11 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
     frame!.sendBreakSignal();
     await Future.delayed(const Duration(milliseconds: 500));
 
+    // clear the previous content from the display and show a temporary loading screen while
+    // we send over our scripts and resources
+    await showLoadingScreen();
+    await Future.delayed(const Duration(milliseconds: 100));
+
     // only if there are lua files to send to Frame (e.g. frame_app.lua companion app, other helper functions, minified versions)
     List<String> luaFiles = _filterLuaFiles((await AssetManifest.loadFromAssetBundle(rootBundle)).listAssets());
 
@@ -351,6 +356,9 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
         // send the lua script to the Frame
         await frame!.uploadScript(fileName, pathFile);
       }
+
+      await frame!.clearDisplay();
+      await Future.delayed(const Duration(milliseconds: 100));
 
       // kick off the main application loop: if there is only one lua file, use it;
       // otherwise require a file called "assets/frame_app.min.lua", or "assets/frame_app.lua".
@@ -371,6 +379,10 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
       else {
         _log.fine('Multiple Lua files uploaded, but no main file to require()');
       }
+    }
+    else {
+      await frame!.clearDisplay();
+      await Future.delayed(const Duration(milliseconds: 100));
     }
 
     currentState = ApplicationState.ready;
@@ -429,6 +441,10 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
 
     // Return the filtered list of Lua files
     return luaFilesMap.values.toList();
+  }
+
+  Future<void> showLoadingScreen() async {
+    await frame!.sendString('frame.display.text(1,1,"Loading...") frame.display.show()', awaitResponse: false);
   }
 
   /// the SimpleFrameApp subclass implements application-specific code

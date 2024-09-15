@@ -115,6 +115,12 @@ class BrilliantDevice {
     } catch (_) {}
   }
 
+  Future<void> clearDisplay() async {
+    _log.fine("Sending clearDisplay");
+    await sendString('frame.display.bitmap(1,1,4,2,15,"\\xFF") frame.display.show()', awaitResponse: false, log: false);
+    await Future.delayed(const Duration(milliseconds: 100));
+  }
+
   Future<void> sendBreakSignal() async {
     _log.info("Sending break signal");
     await sendString("\x03", awaitResponse: false, log: false);
