@@ -444,7 +444,7 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
   }
 
   Future<void> showLoadingScreen() async {
-    await frame!.sendString('frame.display.text(1,1,"Loading...") frame.display.show()', awaitResponse: false);
+    await frame!.sendString('frame.display.text("Loading...",1,1) frame.display.show()', awaitResponse: false);
   }
 
   /// the SimpleFrameApp subclass implements application-specific code
