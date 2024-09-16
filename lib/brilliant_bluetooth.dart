@@ -315,6 +315,8 @@ class BrilliantDevice {
   Future<void> uploadScript(String fileName, String filePath) async {
     try {
       _log.info("Uploading script: $fileName");
+      // TODO temporarily observe memory usage
+      await sendString('print("Frame Mem: " .. tostring(collectgarbage("count")))', awaitResponse: true);
 
       String file = await rootBundle.loadString(filePath);
 
@@ -362,6 +364,10 @@ class BrilliantDevice {
       if (resp != "\x02") {
         throw ("Error closing file: $resp");
       }
+
+      // TODO temporarily observe memory usage
+      await sendString('print("Frame Mem: " .. tostring(collectgarbage("count")))', awaitResponse: true);
+
     } catch (error) {
       _log.warning("Couldn't upload script. $error");
       return Future.error(BrilliantBluetoothException(error.toString()));

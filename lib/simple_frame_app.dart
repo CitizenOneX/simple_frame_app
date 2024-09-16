@@ -99,8 +99,9 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
         // TODO looks like if the signal comes too early after connection, it isn't registered
         await Future.delayed(const Duration(milliseconds: 500));
         await frame!.sendBreakSignal();
+        await Future.delayed(const Duration(milliseconds: 500));
 
-        await frame!.sendString('print("Connected to Frame " .. frame.FIRMWARE_VERSION)');
+        await frame!.sendString('print("Connected to Frame " .. frame.FIRMWARE_VERSION .. ", Mem: " .. tostring(collectgarbage("count")))', awaitResponse: true);
 
         // Frame is ready to go!
         currentState = ApplicationState.connected;
@@ -142,6 +143,9 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
           // TODO looks like if the signal comes too early after connection, it isn't registered
           await Future.delayed(const Duration(milliseconds: 500));
           await frame!.sendBreakSignal();
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          await frame!.sendString('print("Connected to Frame " .. frame.FIRMWARE_VERSION .. ", Mem: " .. tostring(collectgarbage("count")))', awaitResponse: true);
 
           // Frame is ready to go!
           currentState = ApplicationState.connected;
