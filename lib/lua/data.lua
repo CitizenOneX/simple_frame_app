@@ -60,15 +60,10 @@ function _M.update_app_data_accum(data)
         -- if all bytes are received, concat and move message to block
         -- but don't parse yet
         if item.recv_bytes == item.size then
-            print("Frame Mem before first collect: " .. tostring(collectgarbage("count")))
-            collectgarbage()
-            print("Frame Mem before concat: " .. tostring(collectgarbage("count")))
+            collectgarbage('collect')
             app_data_block[msg_flag] = table.concat(item.chunk_table)
-            print("Frame Mem after concat: " .. tostring(collectgarbage("count")))
             for k, v in pairs(item.chunk_table) do item.chunk_table[k] = nil end
-            print("Frame Mem after nil: " .. tostring(collectgarbage("count")))
             collectgarbage()
-            print("Frame Mem after collect: " .. tostring(collectgarbage("count")))
             item.size = 0
             item.recv_bytes = 0
             item.num_chunks = 0
@@ -83,6 +78,7 @@ frame.bluetooth.receive_callback(_M.update_app_data_accum)
 -- Works through app_data_block and if any items are ready, run the corresponding parser
 -- Returns the number of new items in app_data{}
 function _M.process_raw_items()
+    collectgarbage('collect')
     local processed = 0
 
     for flag, block in pairs(app_data_block) do
