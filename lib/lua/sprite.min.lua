@@ -1,0 +1,1 @@
+_M={}function parse_sprite(a)local b={}b.width=string.byte(a,1)<<8|string.byte(a,2)b.height=string.byte(a,3)<<8|string.byte(a,4)b.bpp=string.byte(a,5)b.num_colors=string.byte(a,6)b.palette_data=string.sub(a,7,7+b.num_colors*3-1)b.pixel_data=string.sub(a,7+b.num_colors*3)return b end;return _M
