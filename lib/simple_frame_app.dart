@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'brilliant_bluetooth.dart';
+import 'tx/sprite.dart';
 
 /// basic State Machine for the app; mostly for bluetooth lifecycle,
 /// all app activity expected to take place during "running" state
@@ -361,27 +362,29 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
         await frame!.uploadScript(fileName, pathFile);
       }
 
-      await frame!.clearDisplay();
-      await Future.delayed(const Duration(milliseconds: 100));
-
       // kick off the main application loop: if there is only one lua file, use it;
       // otherwise require a file called "assets/frame_app.min.lua", or "assets/frame_app.lua".
       // In that case, the main app file should add require() statements for any dependent modules
-      if (luaFiles.length == 1) {
-        String fileName = luaFiles[0].split('/').last; // e.g. "assets/my_file.min.lua" -> "my_file.min.lua"
-        int lastDotIndex = fileName.lastIndexOf(".lua");
-        String bareFileName = fileName.substring(0, lastDotIndex); // e.g. "my_file.min.lua" -> "my_file.min"
-
-        await frame!.sendString('require("$bareFileName")', awaitResponse: true);
-      }
-      else if (luaFiles.contains('assets/frame_app.min.lua')) {
-        await frame!.sendString('require("frame_app.min")', awaitResponse: true);
-      }
-      else if (luaFiles.contains('assets/frame_app.lua')) {
-        await frame!.sendString('require("frame_app")', awaitResponse: true);
+      if (luaFiles.length != 1 && !luaFiles.contains('assets/frame_app.min.lua') && !luaFiles.contains('assets/frame_app.lua')) {
+        _log.fine('Multiple Lua files uploaded, but no main file to require()');
       }
       else {
-        _log.fine('Multiple Lua files uploaded, but no main file to require()');
+        if (luaFiles.length == 1) {
+          String fileName = luaFiles[0].split('/').last; // e.g. "assets/my_file.min.lua" -> "my_file.min.lua"
+          int lastDotIndex = fileName.lastIndexOf(".lua");
+          String bareFileName = fileName.substring(0, lastDotIndex); // e.g. "my_file.min.lua" -> "my_file.min"
+
+          await frame!.sendString('require("$bareFileName")', awaitResponse: true);
+        }
+        else if (luaFiles.contains('assets/frame_app.min.lua')) {
+          await frame!.sendString('require("frame_app.min")', awaitResponse: true);
+        }
+        else if (luaFiles.contains('assets/frame_app.lua')) {
+          await frame!.sendString('require("frame_app")', awaitResponse: true);
+        }
+
+        // load all the Sprites from assets/sprites
+        await _uploadSprites(_filterSpriteAssets((await AssetManifest.loadFromAssetBundle(rootBundle)).listAssets()));
       }
     }
     else {
@@ -422,6 +425,7 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
   /// When given the full list of Assets, return only the Lua files (and give .min.lua minified files precedence)
   /// Note that file strings will be 'assets/my_file.lua' which we need to find the asset in Flutter,
   /// but we need to file.split('/').last if we only want the file name when writing/deleting the file on Frame in the root of its filesystem
+  /// TODO remove precedence for .min.lua files - only one or the other should be specified in assets:
   List<String> _filterLuaFiles(List<String> files) {
     // Create a map to store the base file names without extensions.
     Map<String, String> luaFilesMap = {};
@@ -445,6 +449,56 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
 
     // Return the filtered list of Lua files
     return luaFilesMap.values.toList();
+  }
+
+  /// Loops over each of the sprites in the assets/sprites directory (and declared in pubspec.yaml) and returns an entry with
+  /// each sprite associated with a message_type key: the two hex digits in its filename,
+  /// e.g. 'assets/sprites/1f_mysprite.png' has a message type of 0x1f. This message is used to key the messages in the frameside lua app
+  Map<int, String> _filterSpriteAssets(List<String> files) {
+    var spriteFiles = files.where((String pathFile) => pathFile.startsWith('assets/sprites/') && pathFile.endsWith('.png')).toList();
+
+    // Create the map from hexadecimal integer prefix to sprite name
+    final Map<int, String> spriteMap = {};
+
+    for (final String sprite in spriteFiles) {
+      // Extract the part of the filename without the directory and extension
+      final String fileName = sprite.split('/').last; // e.g., "12_spriteone.png"
+
+      // Extract the hexadecimal prefix and the sprite name
+      final String hexPrefix = fileName.split('_').first; // e.g., "12"
+
+      // Convert the hexadecimal prefix to an integer
+      final int? hexValue = int.tryParse(hexPrefix, radix: 16);
+
+      if (hexValue == null) {
+        _log.severe('invalid hex prefix: $hexPrefix for asset $sprite');
+      }
+      else {
+        // Add the hex value and sprite to the map
+        spriteMap[hexValue] = sprite;
+      }
+    }
+
+    return spriteMap;
+  }
+
+  /// Loops over each of the filtered sprites in the assets/sprites directory and sends each sprite with the message_type
+  /// indicated as two hex digits in its filename, e.g. 'assets/sprites/1f_mysprite.png' has a message code of 0x1f
+  /// Sprites should be PNGs with palettes of up to 2, 4, or 16 colors (1-, 2-, or 4-bit indexed palettes)
+  /// Alpha channel (4th-RGBA), if present, is dropped before sending to Frame (RGB only, but color 0 is VOID)
+  Future<void> _uploadSprites(Map<int, String> spriteMap) async {
+    for (var entry in spriteMap.entries) {
+      try {
+        var sprite = TxSprite.fromPngBytes(msgCode: entry.key, pngBytes: Uint8List.sublistView(await rootBundle.load(entry.value)));
+
+        // send sprite to Frame with its associated message type
+        await frame!.sendMessage(sprite);
+        await Future.delayed(const Duration(milliseconds: 200));
+      }
+      catch (e) {
+        _log.severe('$e');
+      }
+    }
   }
 
   Future<void> showLoadingScreen() async {
