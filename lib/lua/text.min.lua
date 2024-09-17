@@ -1,0 +1,1 @@
+_M={}function _M.parse_text(a)local b={}b.string=a;return b end;return _M
