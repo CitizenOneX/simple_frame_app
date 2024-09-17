@@ -1,39 +1,95 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+Flutter quickstart app scaffolding and standard library functions for Brilliant Frame development on Android/iOS. (iOS support intended but untested.)
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/guides/libraries/writing-package-pages).
-
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-library-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/developing-packages).
--->
-
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+## Images
+![frameshot1](docs/frameshot1.png)
+![frameshot2](docs/frameshot2.png)
+![frameshot3](docs/frameshot3.jpg)
+![frameshot4](docs/frameshot4.jpg)
+![frameshot5](docs/frameshot5.jpg)
+![screenshot1](docs/screenshot1.png)
+![screenshot2](docs/screenshot2.png)
 
 ## Features
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+* Connect/disconnect via bluetooth (`flutter_blue_plus` package)
+* Send and display Sprites on Frame (from both pre-made image assets and also dynamically-sourced)
+* Send text for display on Frame
+* Request and process JPG images from Frame camera (`image` package)
+* Automatically loads custom Lua scripts onto Frame on app startup, deletes them on app exit
+* Automatically loads sprite assets into Frame memory on app startup
+* Framework for custom typed message sending and receiving (pack/parse standard and custom message types) that automatically handles messages larger than bluetooth MTU size
+* Library of standard frameside Lua scripts (for generic accumulation of message data, battery, camera, sprites)
+* Conventions for the use of minified Lua scripts
+* Template for optional simple single-page phoneside Flutter app (coming soon)
+* Template for standard frameside Lua app (coming soon)
 
 ## Getting started
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+* Create a Flutter mobile app
+* `flutter pub add simple_frame_app`
+* Follow the `flutter_blue_plus` [instructions](https://pub.dev/packages/flutter_blue_plus#getting-started) for modifying configuration files on Android and iOS for Bluetooth LE support
+* On Android, also append `|navigation` to the long list in `android:configChanges` to prevent app activity restarts on bluetooth connect/disconnect.
+* Copy template files for `main.dart` and `frame_app.lua` from `templates/`
+* Add resouces to `pubspec.yaml`, both standard and custom, that you wish to send to Frame on app startup e.g. `- packages/simple_frame_app/lua/camera.min.lua` for a standard Lua library, or `- assets/sprites/20_mysprite.png` for an app-specific sprite
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
+Phoneside (Flutter/Dart)
 
 ```dart
-const like = 'sample';
+// asking Frame to take a photo and send it back
+var takePhoto = TxCameraSettings(msgCode: 0x0d);
+await frame!.sendMessage(takePhoto);
+
+// synchronously await the image response encoded as a jpeg
+Uint8List imageData = await imageDataResponse(frame!.dataResponse, 50).first;
+
+// send a custom message and value to the Lua app running on Frame
+frame!.sendMessage(TxCode(msgCode: 0x0e, value: 1));
+
+// send a sprite to Frame with an identifying message code
+var sprite = TxSprite.fromPngBytes(msgCode: 0x2F, pngBytes: bytesFromFileOrWeb);
+await frame!.sendMessage(sprite);
 ```
+
+Frameside (Lua)
+```lua
+-- Phone to Frame message codes
+CAMERA_SETTINGS_MSG = 0x0d
+HOTDOG_MSG = 0x0e
+
+-- camera_settings message to take a photo
+if (data.app_data[CAMERA_SETTINGS_MSG] ~= nil) then
+    rc, err = pcall(camera.camera_capture_and_send, data.app_data[CAMERA_SETTINGS_MSG])
+
+    if rc == false then
+        print(err)
+    end
+
+    -- clear the message
+    data.app_data[CAMERA_SETTINGS_MSG] = nil
+end
+
+-- hotdog classification 0 or 1
+if (data.app_data[HOTDOG_MSG] ~= nil) then
+
+    if (data.app_data[HOTDOG_MSG].value == 1) then
+
+        if (data.app_data[HOTDOG_SPRITE] ~= nil) then
+            local spr = data.app_data[HOTDOG_SPRITE]
+            frame.display.bitmap(450, 136, spr.width, 2^spr.bpp, 0, spr.pixel_data)
+        end
+    end
+
+    frame.display.show()
+
+    -- clear the message
+    data.app_data[HOTDOG_MSG] = nil
+end
+```
+
+Numerous example projects can be found [in the CitizenOneX GitHub](https://github.com/CitizenOneX?tab=repositories).
 
 ## Additional information
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+This is a work-in-progress personal project with limited support and frequent breaking changes; fixes and suggestions with PRs welcome.
