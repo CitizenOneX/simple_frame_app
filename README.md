@@ -1,13 +1,13 @@
 Flutter and Lua quickstart app scaffolding and standard library functions for Brilliant Frame development on Android/iOS. (iOS support intended but untested.)
 
 ## Images
-![frameshot1](doc/frameshot1.png)
-![frameshot2](doc/frameshot2.png)
-![frameshot3](doc/frameshot3.jpg)
-![frameshot4](doc/frameshot4.jpg)
-![frameshot5](doc/frameshot5.jpg)
-![screenshot1](doc/screenshot1.png)
-![screenshot2](doc/screenshot2.png)
+![frameshot1](https://github.com/CitizenOneX/simple_frame_app/raw/main/doc/frameshot1.png)
+![frameshot2](https://github.com/CitizenOneX/simple_frame_app/raw/main/doc/frameshot2.png)
+![frameshot3](https://github.com/CitizenOneX/simple_frame_app/raw/main/doc/frameshot3.jpg)
+![frameshot4](https://github.com/CitizenOneX/simple_frame_app/raw/main/doc/frameshot4.jpg)
+![frameshot5](dhttps://github.com/CitizenOneX/simple_frame_app/raw/main/dococ/frameshot5.jpg)
+![screenshot1](https://github.com/CitizenOneX/simple_frame_app/raw/main/doc/screenshot1.png)
+![screenshot2](https://github.com/CitizenOneX/simple_frame_app/raw/main/doc/screenshot2.png)
 
 ## Features
 
