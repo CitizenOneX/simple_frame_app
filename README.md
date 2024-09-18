@@ -20,8 +20,8 @@ Flutter and Lua quickstart app scaffolding and standard library functions for Br
 * Framework for custom typed message sending and receiving (pack/parse standard and custom message types) that automatically handles messages larger than bluetooth MTU size
 * Library of standard frameside Lua scripts (for generic accumulation of message data, battery, camera, sprites, text)
 * Conventions for the use of minified Lua scripts
-* Template for optional simple single-page phoneside Flutter app (coming soon)
-* Template for standard frameside Lua app (coming soon)
+* Template for optional simple single-page phoneside Flutter app
+* Template for standard frameside Lua app
 
 ## Getting started
 
