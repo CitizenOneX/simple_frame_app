@@ -5,7 +5,7 @@ Flutter and Lua quickstart app scaffolding and standard library functions for Br
 ![frameshot2](https://github.com/CitizenOneX/simple_frame_app/raw/main/doc/frameshot2.png)
 ![frameshot3](https://github.com/CitizenOneX/simple_frame_app/raw/main/doc/frameshot3.jpg)
 ![frameshot4](https://github.com/CitizenOneX/simple_frame_app/raw/main/doc/frameshot4.jpg)
-![frameshot5](dhttps://github.com/CitizenOneX/simple_frame_app/raw/main/dococ/frameshot5.jpg)
+![frameshot5](https://github.com/CitizenOneX/simple_frame_app/raw/main/doc/frameshot5.jpg)
 ![screenshot1](https://github.com/CitizenOneX/simple_frame_app/raw/main/doc/screenshot1.png)
 ![screenshot2](https://github.com/CitizenOneX/simple_frame_app/raw/main/doc/screenshot2.png)
 
