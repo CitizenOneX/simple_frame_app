@@ -18,7 +18,7 @@ Flutter and Lua quickstart app scaffolding and standard library functions for Br
 * Automatically loads custom Lua scripts onto Frame on app startup, deletes them on app exit
 * Automatically loads sprite assets into Frame memory on app startup
 * Framework for custom typed message sending and receiving (pack/parse standard and custom message types) that automatically handles messages larger than bluetooth MTU size
-* Library of standard frameside Lua scripts (for generic accumulation of message data, battery, camera, sprites)
+* Library of standard frameside Lua scripts (for generic accumulation of message data, battery, camera, sprites, text)
 * Conventions for the use of minified Lua scripts
 * Template for optional simple single-page phoneside Flutter app (coming soon)
 * Template for standard frameside Lua app (coming soon)
@@ -29,7 +29,7 @@ Flutter and Lua quickstart app scaffolding and standard library functions for Br
 * `flutter pub add simple_frame_app`
 * Follow the `flutter_blue_plus` [instructions](https://pub.dev/packages/flutter_blue_plus#getting-started) for modifying configuration files on Android and iOS for Bluetooth LE support
 * On Android, also append `|navigation` to the long list in `android:configChanges` to prevent app activity restarts on bluetooth connect/disconnect.
-* Copy template files for `main.dart` and `frame_app.lua` from `templates/` (coming soon; for now see [sample projects](https://github.com/CitizenOneX?tab=repositories))
+* Copy template files `template/main.dart` and `template/frame_app.lua` to your project's lib/ and assets/ directories respectively (also see [sample projects](https://github.com/CitizenOneX?tab=repositories) for examples of phoneside and frameside apps.)
 * Add resouces to `pubspec.yaml`, both standard and custom, that you wish to send to Frame on app startup e.g. `- packages/simple_frame_app/lua/camera.min.lua` for a standard Lua library, or `- assets/sprites/20_mysprite.png` for an app-specific sprite
 
 ## Usage
