@@ -15,10 +15,12 @@ const finalChunkFlag = 0x08;
 /// are not sent from Frame - only the content, using non-final and final message types
 /// Jpeg header and footer are added in here on the client, so a quality level
 /// must be provided to select the correct header
-Stream<Uint8List> imageDataResponse(Stream<List<int>> dataResponse, int qualityLevel) {
+Stream<Uint8List> imageDataResponse(
+    Stream<List<int>> dataResponse, int qualityLevel) {
   // qualityLevel must be valid (10, 25, 50, 100)
   if (!jpegHeaderMap.containsKey(qualityLevel)) {
-    throw Exception('Invalid quality level for jpeg: $qualityLevel - must be one of: ${jpegHeaderMap.keys}');
+    throw Exception(
+        'Invalid quality level for jpeg: $qualityLevel - must be one of: ${jpegHeaderMap.keys}');
   }
 
   // the image data as a list of bytes that accumulates with each packet
@@ -36,30 +38,29 @@ Stream<Uint8List> imageDataResponse(Stream<List<int>> dataResponse, int qualityL
 
   controller.onListen = () {
     dataResponseSubs = dataResponse
-      .where((data) => data[0] == nonFinalChunkFlag || data[0] == finalChunkFlag)
-      .listen((data) {
-        if (data[0] == nonFinalChunkFlag) {
-          imageData += data.sublist(1);
-          rawOffset += data.length - 1;
-        }
-        // the last chunk has a first byte of 8 so stop after this
-        else if (data[0] == finalChunkFlag) {
-          imageData += data.sublist(1);
-          rawOffset += data.length - 1;
+        .where(
+            (data) => data[0] == nonFinalChunkFlag || data[0] == finalChunkFlag)
+        .listen((data) {
+      if (data[0] == nonFinalChunkFlag) {
+        imageData += data.sublist(1);
+        rawOffset += data.length - 1;
+      }
+      // the last chunk has a first byte of 8 so stop after this
+      else if (data[0] == finalChunkFlag) {
+        imageData += data.sublist(1);
+        rawOffset += data.length - 1;
 
-          // add the jpeg footer bytes (2 bytes)
-          imageData.addAll(jpegFooter);
+        // add the jpeg footer bytes (2 bytes)
+        imageData.addAll(jpegFooter);
 
-          // When full image data is received, emit it and clear the buffer
-          controller.add(Uint8List.fromList(imageData));
-          imageData.clear();
-          rawOffset = 0;
-        }
-        _log.finer('Chunk size: ${data.length-1}, rawOffset: $rawOffset');
-      },
-      onDone: controller.close,
-      onError: controller.addError);
-      _log.fine('Controller being listened to');
+        // When full image data is received, emit it and clear the buffer
+        controller.add(Uint8List.fromList(imageData));
+        imageData.clear();
+        rawOffset = 0;
+      }
+      _log.finer('Chunk size: ${data.length - 1}, rawOffset: $rawOffset');
+    }, onDone: controller.close, onError: controller.addError);
+    _log.fine('Controller being listened to');
   };
 
   controller.onCancel = () {

@@ -12,19 +12,18 @@ class TxSprite extends TxMsg {
 
   /// Create a sprite with the specified size, palette data and pixel data, identified by the specified message code (the identifier used on the Lua side to label this sprite)
   /// width(Uint16), height(Uint16), bpp(Uint8), numColors(Uint8), palette (Uint8 r, Uint8 g, Uint8 b)*numColors, data (length: width x height bytes content: palette index)
-  TxSprite({
-    required super.msgCode,
-    required int width,
-    required int height,
-    required int numColors,
-    required Uint8List paletteData,
-    required Uint8List pixelData
-    })
-    : _width = width,
-      _height = height,
-      _numColors = numColors,
-      _paletteData = paletteData,
-      _pixelData = pixelData;
+  TxSprite(
+      {required super.msgCode,
+      required int width,
+      required int height,
+      required int numColors,
+      required Uint8List paletteData,
+      required Uint8List pixelData})
+      : _width = width,
+        _height = height,
+        _numColors = numColors,
+        _paletteData = paletteData,
+        _pixelData = pixelData;
 
   /// Create a sprite from a PNG
   /// Sprites should be PNGs with palettes of up to 2, 4, or 16 colors (1-, 2-, or 4-bit indexed palettes)
@@ -32,12 +31,17 @@ class TxSprite extends TxMsg {
   TxSprite.fromPngBytes({required super.msgCode, required Uint8List pngBytes}) {
     var imgPng = img.PngDecoder().decode(pngBytes);
 
-    if (imgPng != null && imgPng.hasPalette && imgPng.palette!.numColors <= 16) {
-
+    if (imgPng != null &&
+        imgPng.hasPalette &&
+        imgPng.palette!.numColors <= 16) {
       // resize the image if it's too big - we really shouldn't have to do this for project sprites, just user-picked images
       if (imgPng.width > 640 || imgPng.height > 400) {
         // use nearest interpolation, we can't use any interpretation that averages colors
-        imgPng = img.copyResize(imgPng, width: 640, height: 400, maintainAspect: true, interpolation: img.Interpolation.nearest);
+        imgPng = img.copyResize(imgPng,
+            width: 640,
+            height: 400,
+            maintainAspect: true,
+            interpolation: img.Interpolation.nearest);
       }
 
       _width = imgPng.width;
@@ -46,24 +50,23 @@ class TxSprite extends TxMsg {
       _pixelData = imgPng.data!.toUint8List();
 
       // we can process RGB or RGBA format palettes, but any others we just exclude here
-      if (imgPng.palette!.numChannels == 3 || imgPng.palette!.numChannels == 4) {
-
+      if (imgPng.palette!.numChannels == 3 ||
+          imgPng.palette!.numChannels == 4) {
         if (imgPng.palette!.numChannels == 3) {
           _paletteData = imgPng.palette!.toUint8List();
-        }
-        else if (imgPng.palette!.numChannels == 4) {
+        } else if (imgPng.palette!.numChannels == 4) {
           // strip out the alpha channel from the palette
           _paletteData = _extractRGB(imgPng.palette!.toUint8List());
         }
 
         //_log.fine('Sprite: ${imgPng.width} x ${imgPng.height}, ${imgPng.palette!.numColors} cols, ${sprite.pack().length} bytes');
+      } else {
+        throw Exception(
+            'PNG colors must have 3 or 4 channels to be converted to a sprite');
       }
-      else {
-        throw Exception('PNG colors must have 3 or 4 channels to be converted to a sprite');
-      }
-    }
-    else {
-      throw Exception('PNG must be a valid PNG image with a palette (indexed color) and 16 colors or fewer to be converted to a sprite');
+    } else {
+      throw Exception(
+          'PNG must be a valid PNG image with a palette (indexed color) and 16 colors or fewer to be converted to a sprite');
     }
   }
 
@@ -75,7 +78,7 @@ class TxSprite extends TxMsg {
 
     int rgbIndex = 0;
     for (int i = 0; i < rgba.length; i += 4) {
-      rgb[rgbIndex++] = rgba[i];     // R
+      rgb[rgbIndex++] = rgba[i]; // R
       rgb[rgbIndex++] = rgba[i + 1]; // G
       rgb[rgbIndex++] = rgba[i + 2]; // B
     }
@@ -106,18 +109,21 @@ class TxSprite extends TxMsg {
         packed = pack4Bit(_pixelData);
         break;
       default:
-        throw Exception('Image must have 16 or fewer colors. Actual: $_numColors');
+        throw Exception(
+            'Image must have 16 or fewer colors. Actual: $_numColors');
     }
 
     // preallocate the list of bytes to send - sprite header, palette, pixel data
     // (packed.length already adds the extra byte if WxH is not divisible by 8)
-    Uint8List payload = Uint8List.fromList(List.filled(6 + _numColors * 3 + packed.length, 0));
+    Uint8List payload =
+        Uint8List.fromList(List.filled(6 + _numColors * 3 + packed.length, 0));
 
     // NB: palette data could be numColors=12 x 3 (RGB) bytes even if bpp is 4 (max 16 colors)
     // hence we provide both numColors and bpp here.
     // sendMessage will prepend the data byte, msgCode to each packet
     // and the Uint16 payload length to the first packet
-    payload.setAll(0, [widthMsb, widthLsb, heightMsb, heightLsb, bpp, _numColors]);
+    payload
+        .setAll(0, [widthMsb, widthLsb, heightMsb, heightLsb, bpp, _numColors]);
     payload.setAll(6, _paletteData);
     payload.setAll(6 + _numColors * 3, packed);
 
@@ -125,8 +131,10 @@ class TxSprite extends TxMsg {
   }
 
   static Uint8List pack1Bit(Uint8List bpp1) {
-    int byteLength = (bpp1.length + 7) ~/ 8;  // Calculate the required number of bytes
-    Uint8List packed = Uint8List(byteLength); // Create the Uint8List to hold packed bytes
+    int byteLength =
+        (bpp1.length + 7) ~/ 8; // Calculate the required number of bytes
+    Uint8List packed =
+        Uint8List(byteLength); // Create the Uint8List to hold packed bytes
 
     for (int i = 0; i < bpp1.length; i++) {
       int byteIndex = i ~/ 8;
@@ -138,8 +146,10 @@ class TxSprite extends TxMsg {
   }
 
   static Uint8List pack2Bit(Uint8List bpp2) {
-    int byteLength = (bpp2.length + 3) ~/ 4;  // Calculate the required number of bytes
-    Uint8List packed = Uint8List(byteLength); // Create the Uint8List to hold packed bytes
+    int byteLength =
+        (bpp2.length + 3) ~/ 4; // Calculate the required number of bytes
+    Uint8List packed =
+        Uint8List(byteLength); // Create the Uint8List to hold packed bytes
 
     for (int i = 0; i < bpp2.length; i++) {
       int byteIndex = i ~/ 4;
@@ -151,8 +161,10 @@ class TxSprite extends TxMsg {
   }
 
   static Uint8List pack4Bit(Uint8List bpp4) {
-    int byteLength = (bpp4.length + 1) ~/ 2;  // Calculate the required number of bytes
-    Uint8List packed = Uint8List(byteLength); // Create the Uint8List to hold packed bytes
+    int byteLength =
+        (bpp4.length + 1) ~/ 2; // Calculate the required number of bytes
+    Uint8List packed =
+        Uint8List(byteLength); // Create the Uint8List to hold packed bytes
 
     for (int i = 0; i < bpp4.length; i++) {
       int byteIndex = i ~/ 2;

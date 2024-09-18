@@ -117,7 +117,10 @@ class BrilliantDevice {
 
   Future<void> clearDisplay() async {
     _log.fine("Sending clearDisplay");
-    await sendString('frame.display.bitmap(1,1,4,2,15,"\\xFF") frame.display.show()', awaitResponse: false, log: false);
+    await sendString(
+        'frame.display.bitmap(1,1,4,2,15,"\\xFF") frame.display.show()',
+        awaitResponse: false,
+        log: false);
     await Future.delayed(const Duration(milliseconds: 100));
   }
 
@@ -193,15 +196,15 @@ class BrilliantDevice {
   /// Same as sendData but user includes the 0x01 header byte to avoid extra memory allocation
   Future<void> sendDataRaw(Uint8List data) async {
     try {
-      _log.finer("Sending ${data.length-1} bytes of plain data");
+      _log.finer("Sending ${data.length - 1} bytes of plain data");
       _log.finest(data);
 
       if (state != BrilliantConnectionState.connected) {
         throw ("Device is not connected");
       }
 
-      if (data.length > maxDataLength!+1) {
-        throw ("Payload exceeds allowed length of ${maxDataLength!+1}");
+      if (data.length > maxDataLength! + 1) {
+        throw ("Payload exceeds allowed length of ${maxDataLength! + 1}");
       }
 
       if (data[0] != 0x01) {
@@ -224,7 +227,8 @@ class BrilliantDevice {
     Uint8List payload = message.pack();
 
     if (payload.length > 65535) {
-      return Future.error(const BrilliantBluetoothException('Payload length exceeds 65535 bytes'));
+      return Future.error(const BrilliantBluetoothException(
+          'Payload length exceeds 65535 bytes'));
     }
 
     int lengthMsb = payload.length >> 8;
@@ -253,50 +257,54 @@ class BrilliantDevice {
           packetBuffer[1] = message.msgCode & 0xFF;
           packetBuffer[2] = lengthMsb;
           packetBuffer[3] = lengthLsb;
-          packetBuffer.setAll(4, payload.getRange(sentBytes, sentBytes + bytesRemaining));
+          packetBuffer.setAll(
+              4, payload.getRange(sentBytes, sentBytes + bytesRemaining));
           sentBytes += bytesRemaining;
-          packetToSend = Uint8List.sublistView(packetBuffer, 0, bytesRemaining + 4);
-        }
-        else if (bytesRemaining == chunksize - 2) {
+          packetToSend =
+              Uint8List.sublistView(packetBuffer, 0, bytesRemaining + 4);
+        } else if (bytesRemaining == chunksize - 2) {
           // first and final chunk - small payload, exact packet size match
           _log.finer('sendMessage: first and final packet, exact match');
           packetBuffer[0] = 0x01;
           packetBuffer[1] = message.msgCode & 0xFF;
           packetBuffer[2] = lengthMsb;
           packetBuffer[3] = lengthLsb;
-          packetBuffer.setAll(4, payload.getRange(sentBytes, sentBytes + bytesRemaining));
+          packetBuffer.setAll(
+              4, payload.getRange(sentBytes, sentBytes + bytesRemaining));
           sentBytes += bytesRemaining;
           packetToSend = packetBuffer;
-        }
-        else {
+        } else {
           // first of many chunks
           _log.finer('sendMessage: first of many packets');
           packetBuffer[0] = 0x01;
           packetBuffer[1] = message.msgCode & 0xFF;
           packetBuffer[2] = lengthMsb;
           packetBuffer[3] = lengthLsb;
-          packetBuffer.setAll(4, payload.getRange(sentBytes, sentBytes + chunksize - 2));
+          packetBuffer.setAll(
+              4, payload.getRange(sentBytes, sentBytes + chunksize - 2));
           sentBytes += chunksize - 2;
           packetToSend = packetBuffer;
         }
-      }
-      else {
+      } else {
         // not the first packet
         if (bytesRemaining < chunksize) {
           _log.finer('sendMessage: not the first packet, final packet');
           // final data chunk, smaller than chunksize
           packetBuffer[0] = 0x01;
           packetBuffer[1] = message.msgCode & 0xFF;
-          packetBuffer.setAll(2, payload.getRange(sentBytes, sentBytes + bytesRemaining));
+          packetBuffer.setAll(
+              2, payload.getRange(sentBytes, sentBytes + bytesRemaining));
           sentBytes += bytesRemaining;
-          packetToSend = Uint8List.sublistView(packetBuffer, 0, bytesRemaining + 2);
-        }
-        else  {
-          _log.finer('sendMessage: not the first packet, non-final packet or exact match final packet');
+          packetToSend =
+              Uint8List.sublistView(packetBuffer, 0, bytesRemaining + 2);
+        } else {
+          _log.finer(
+              'sendMessage: not the first packet, non-final packet or exact match final packet');
           // non-final data chunk or final chunk with exact packet size match
           packetBuffer[0] = 0x01;
           packetBuffer[1] = message.msgCode & 0xFF;
-          packetBuffer.setAll(2, payload.getRange(sentBytes, sentBytes + chunksize));
+          packetBuffer.setAll(
+              2, payload.getRange(sentBytes, sentBytes + chunksize));
           sentBytes += chunksize;
           packetToSend = packetBuffer;
         }
@@ -316,7 +324,9 @@ class BrilliantDevice {
     try {
       _log.info("Uploading script: $fileName");
       // TODO temporarily observe memory usage
-      await sendString('print("Frame Mem: " .. tostring(collectgarbage("count")))', awaitResponse: true);
+      await sendString(
+          'print("Frame Mem: " .. tostring(collectgarbage("count")))',
+          awaitResponse: true);
 
       String file = await rootBundle.loadString(filePath);
 
@@ -366,8 +376,9 @@ class BrilliantDevice {
       }
 
       // TODO temporarily observe memory usage
-      await sendString('print("Frame Mem: " .. tostring(collectgarbage("count")))', awaitResponse: true);
-
+      await sendString(
+          'print("Frame Mem: " .. tostring(collectgarbage("count")))',
+          awaitResponse: true);
     } catch (error) {
       _log.warning("Couldn't upload script. $error");
       return Future.error(BrilliantBluetoothException(error.toString()));

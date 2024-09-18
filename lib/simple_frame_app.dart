@@ -45,41 +45,40 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
     await BrilliantBluetooth.requestPermission();
 
     await _scanStream?.cancel();
-    _scanStream = BrilliantBluetooth.scan()
-      .timeout(const Duration(seconds: 5), onTimeout: (sink) {
-        // Scan timeouts can occur without having found a Frame, but also
-        // after the Frame is found and being connected to, even though
-        // the first step after finding the Frame is to stop the scan.
-        // In those cases we don't want to change the application state back
-        // to disconnected
-        switch (currentState) {
-          case ApplicationState.scanning:
-            _log.fine('Scan timed out after 5 seconds');
-            currentState = ApplicationState.disconnected;
-            if (mounted) setState(() {});
-            break;
-          case ApplicationState.connecting:
-            // found a device and started connecting, just let it play out
-            break;
-          case ApplicationState.connected:
-          case ApplicationState.ready:
-          case ApplicationState.running:
-          case ApplicationState.starting:
-          case ApplicationState.canceling:
-            // already connected, nothing to do
-            break;
-          default:
-            _log.fine('Unexpected state on scan timeout: $currentState');
-            if (mounted) setState(() {});
-        }
-      })
-      .listen((device) {
-        _log.fine('Frame found, connecting');
-        currentState = ApplicationState.connecting;
-        if (mounted) setState(() {});
+    _scanStream = BrilliantBluetooth.scan().timeout(const Duration(seconds: 5),
+        onTimeout: (sink) {
+      // Scan timeouts can occur without having found a Frame, but also
+      // after the Frame is found and being connected to, even though
+      // the first step after finding the Frame is to stop the scan.
+      // In those cases we don't want to change the application state back
+      // to disconnected
+      switch (currentState) {
+        case ApplicationState.scanning:
+          _log.fine('Scan timed out after 5 seconds');
+          currentState = ApplicationState.disconnected;
+          if (mounted) setState(() {});
+          break;
+        case ApplicationState.connecting:
+          // found a device and started connecting, just let it play out
+          break;
+        case ApplicationState.connected:
+        case ApplicationState.ready:
+        case ApplicationState.running:
+        case ApplicationState.starting:
+        case ApplicationState.canceling:
+          // already connected, nothing to do
+          break;
+        default:
+          _log.fine('Unexpected state on scan timeout: $currentState');
+          if (mounted) setState(() {});
+      }
+    }).listen((device) {
+      _log.fine('Frame found, connecting');
+      currentState = ApplicationState.connecting;
+      if (mounted) setState(() {});
 
-        connectToScannedFrame(device);
-      });
+      connectToScannedFrame(device);
+    });
   }
 
   Future<void> connectToScannedFrame(BrilliantScannedDevice device) async {
@@ -102,12 +101,13 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
         await frame!.sendBreakSignal();
         await Future.delayed(const Duration(milliseconds: 500));
 
-        await frame!.sendString('print("Connected to Frame " .. frame.FIRMWARE_VERSION .. ", Mem: " .. tostring(collectgarbage("count")))', awaitResponse: true);
+        await frame!.sendString(
+            'print("Connected to Frame " .. frame.FIRMWARE_VERSION .. ", Mem: " .. tostring(collectgarbage("count")))',
+            awaitResponse: true);
 
         // Frame is ready to go!
         currentState = ApplicationState.connected;
         if (mounted) setState(() {});
-
       } catch (e) {
         currentState = ApplicationState.disconnected;
         _log.fine('Error while sending break signal: $e');
@@ -146,26 +146,26 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
           await frame!.sendBreakSignal();
           await Future.delayed(const Duration(milliseconds: 500));
 
-          await frame!.sendString('print("Connected to Frame " .. frame.FIRMWARE_VERSION .. ", Mem: " .. tostring(collectgarbage("count")))', awaitResponse: true);
+          await frame!.sendString(
+              'print("Connected to Frame " .. frame.FIRMWARE_VERSION .. ", Mem: " .. tostring(collectgarbage("count")))',
+              awaitResponse: true);
 
           // Frame is ready to go!
           currentState = ApplicationState.connected;
           if (mounted) setState(() {});
-
         } catch (e) {
           currentState = ApplicationState.disconnected;
           _log.fine('Error while sending break signal: $e');
           if (mounted) setState(() {});
 
-        disconnectFrame();
+          disconnectFrame();
         }
       } catch (e) {
         currentState = ApplicationState.disconnected;
         _log.fine('Error while connecting and/or discovering services: $e');
         if (mounted) setState(() {});
       }
-    }
-    else {
+    } else {
       currentState = ApplicationState.disconnected;
       _log.fine('Current device is null, reconnection not possible');
       if (mounted) setState(() {});
@@ -175,8 +175,7 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
   Future<void> scanOrReconnectFrame() async {
     if (frame != null) {
       return reconnectFrame();
-    }
-    else {
+    } else {
       return scanForFrame();
     }
   }
@@ -204,19 +203,17 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
         // The sdk's sendResetSignal actually already adds 100ms delay
         // perhaps it's not quite enough.
         await Future.delayed(const Duration(milliseconds: 500));
-
       } catch (e) {
-          _log.fine('Error while sending reset signal: $e');
+        _log.fine('Error while sending reset signal: $e');
       }
 
-      try{
-          // try to disconnect cleanly if the device allows
-          await frame!.disconnect();
+      try {
+        // try to disconnect cleanly if the device allows
+        await frame!.disconnect();
       } catch (e) {
-          _log.fine('Error while calling disconnect(): $e');
+        _log.fine('Error while calling disconnect(): $e');
       }
-    }
-    else {
+    } else {
       _log.fine('Current device is null, disconnection not possible');
     }
 
@@ -262,30 +259,29 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
     IconData i;
     if (_batt! > 87.5) {
       i = Icons.battery_full;
-    }
-    else if (_batt! > 75) {
+    } else if (_batt! > 75) {
       i = Icons.battery_6_bar;
-    }
-    else if (_batt! > 62.5) {
+    } else if (_batt! > 62.5) {
       i = Icons.battery_5_bar;
-    }
-    else if (_batt! > 50) {
+    } else if (_batt! > 50) {
       i = Icons.battery_4_bar;
-    }
-    else if (_batt! > 45) {
+    } else if (_batt! > 45) {
       i = Icons.battery_3_bar;
-    }
-    else if (_batt! > 25) {
+    } else if (_batt! > 25) {
       i = Icons.battery_2_bar;
-    }
-    else if (_batt! > 12.5) {
+    } else if (_batt! > 12.5) {
       i = Icons.battery_1_bar;
-    }
-    else {
+    } else {
       i = Icons.battery_0_bar;
     }
 
-    return Row(children: [Text('$_batt%'), Icon(i, size: 16,)]);
+    return Row(children: [
+      Text('$_batt%'),
+      Icon(
+        i,
+        size: 16,
+      )
+    ]);
   }
 
   List<Widget> getFooterButtonsWidget() {
@@ -294,7 +290,8 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
 
     switch (currentState) {
       case ApplicationState.disconnected:
-        pfb.add(TextButton(onPressed: scanOrReconnectFrame, child: const Text('Connect')));
+        pfb.add(TextButton(
+            onPressed: scanOrReconnectFrame, child: const Text('Connect')));
         pfb.add(const TextButton(onPressed: null, child: Text('Start')));
         pfb.add(const TextButton(onPressed: null, child: Text('Stop')));
         pfb.add(const TextButton(onPressed: null, child: Text('Disconnect')));
@@ -316,26 +313,31 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
 
       case ApplicationState.connected:
         pfb.add(const TextButton(onPressed: null, child: Text('Connect')));
-        pfb.add(TextButton(onPressed: startApplication, child: const Text('Start')));
+        pfb.add(TextButton(
+            onPressed: startApplication, child: const Text('Start')));
         pfb.add(const TextButton(onPressed: null, child: Text('Stop')));
-        pfb.add(TextButton(onPressed: disconnectFrame, child: const Text('Disconnect')));
+        pfb.add(TextButton(
+            onPressed: disconnectFrame, child: const Text('Disconnect')));
         break;
 
       case ApplicationState.ready:
         pfb.add(const TextButton(onPressed: null, child: Text('Connect')));
         pfb.add(const TextButton(onPressed: null, child: Text('Start')));
-        pfb.add(TextButton(onPressed: stopApplication, child: const Text('Stop')));
+        pfb.add(
+            TextButton(onPressed: stopApplication, child: const Text('Stop')));
         pfb.add(const TextButton(onPressed: null, child: Text('Disconnect')));
         break;
     }
     return pfb;
   }
 
-    FloatingActionButton? getFloatingActionButtonWidget(Icon ready, Icon running) {
-    return currentState == ApplicationState.ready ?
-          FloatingActionButton(onPressed: run, child: ready) :
-        currentState == ApplicationState.running ?
-        FloatingActionButton(onPressed: cancel, child: running) : null;
+  FloatingActionButton? getFloatingActionButtonWidget(
+      Icon ready, Icon running) {
+    return currentState == ApplicationState.ready
+        ? FloatingActionButton(onPressed: run, child: ready)
+        : currentState == ApplicationState.running
+            ? FloatingActionButton(onPressed: cancel, child: running)
+            : null;
   }
 
   /// the SimpleFrameApp subclass can override with application-specific code if necessary
@@ -353,7 +355,8 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
     await Future.delayed(const Duration(milliseconds: 100));
 
     // only if there are lua files to send to Frame (e.g. frame_app.lua companion app, other helper functions, minified versions)
-    List<String> luaFiles = _filterLuaFiles((await AssetManifest.loadFromAssetBundle(rootBundle)).listAssets());
+    List<String> luaFiles = _filterLuaFiles(
+        (await AssetManifest.loadFromAssetBundle(rootBundle)).listAssets());
 
     if (luaFiles.isNotEmpty) {
       for (var pathFile in luaFiles) {
@@ -365,29 +368,34 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
       // kick off the main application loop: if there is only one lua file, use it;
       // otherwise require a file called "assets/frame_app.min.lua", or "assets/frame_app.lua".
       // In that case, the main app file should add require() statements for any dependent modules
-      if (luaFiles.length != 1 && !luaFiles.contains('assets/frame_app.min.lua') && !luaFiles.contains('assets/frame_app.lua')) {
+      if (luaFiles.length != 1 &&
+          !luaFiles.contains('assets/frame_app.min.lua') &&
+          !luaFiles.contains('assets/frame_app.lua')) {
         _log.fine('Multiple Lua files uploaded, but no main file to require()');
-      }
-      else {
+      } else {
         if (luaFiles.length == 1) {
-          String fileName = luaFiles[0].split('/').last; // e.g. "assets/my_file.min.lua" -> "my_file.min.lua"
+          String fileName = luaFiles[0]
+              .split('/')
+              .last; // e.g. "assets/my_file.min.lua" -> "my_file.min.lua"
           int lastDotIndex = fileName.lastIndexOf(".lua");
-          String bareFileName = fileName.substring(0, lastDotIndex); // e.g. "my_file.min.lua" -> "my_file.min"
+          String bareFileName = fileName.substring(
+              0, lastDotIndex); // e.g. "my_file.min.lua" -> "my_file.min"
 
-          await frame!.sendString('require("$bareFileName")', awaitResponse: true);
-        }
-        else if (luaFiles.contains('assets/frame_app.min.lua')) {
-          await frame!.sendString('require("frame_app.min")', awaitResponse: true);
-        }
-        else if (luaFiles.contains('assets/frame_app.lua')) {
+          await frame!
+              .sendString('require("$bareFileName")', awaitResponse: true);
+        } else if (luaFiles.contains('assets/frame_app.min.lua')) {
+          await frame!
+              .sendString('require("frame_app.min")', awaitResponse: true);
+        } else if (luaFiles.contains('assets/frame_app.lua')) {
           await frame!.sendString('require("frame_app")', awaitResponse: true);
         }
 
         // load all the Sprites from assets/sprites
-        await _uploadSprites(_filterSpriteAssets((await AssetManifest.loadFromAssetBundle(rootBundle)).listAssets()));
+        await _uploadSprites(_filterSpriteAssets(
+            (await AssetManifest.loadFromAssetBundle(rootBundle))
+                .listAssets()));
       }
-    }
-    else {
+    } else {
       await frame!.clearDisplay();
       await Future.delayed(const Duration(milliseconds: 100));
     }
@@ -406,15 +414,19 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
     await Future.delayed(const Duration(milliseconds: 500));
 
     // only if there are lua files uploaded to Frame (e.g. frame_app.lua companion app, other helper functions, minified versions)
-    List<String> luaFiles = _filterLuaFiles((await AssetManifest.loadFromAssetBundle(rootBundle)).listAssets());
+    List<String> luaFiles = _filterLuaFiles(
+        (await AssetManifest.loadFromAssetBundle(rootBundle)).listAssets());
 
     if (luaFiles.isNotEmpty) {
       // clean up by deregistering any handler
-      await frame!.sendString('frame.bluetooth.receive_callback(nil);print(0)', awaitResponse: true);
+      await frame!.sendString('frame.bluetooth.receive_callback(nil);print(0)',
+          awaitResponse: true);
 
       for (var file in luaFiles) {
         // delete any prior scripts
-        await frame!.sendString('frame.file.remove("${file.split('/').last}");print(0)', awaitResponse: true);
+        await frame!.sendString(
+            'frame.file.remove("${file.split('/').last}");print(0)',
+            awaitResponse: true);
       }
     }
 
@@ -455,14 +467,18 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
   /// each sprite associated with a message_type key: the two hex digits in its filename,
   /// e.g. 'assets/sprites/1f_mysprite.png' has a message type of 0x1f. This message is used to key the messages in the frameside lua app
   Map<int, String> _filterSpriteAssets(List<String> files) {
-    var spriteFiles = files.where((String pathFile) => pathFile.startsWith('assets/sprites/') && pathFile.endsWith('.png')).toList();
+    var spriteFiles = files
+        .where((String pathFile) =>
+            pathFile.startsWith('assets/sprites/') && pathFile.endsWith('.png'))
+        .toList();
 
     // Create the map from hexadecimal integer prefix to sprite name
     final Map<int, String> spriteMap = {};
 
     for (final String sprite in spriteFiles) {
       // Extract the part of the filename without the directory and extension
-      final String fileName = sprite.split('/').last; // e.g., "12_spriteone.png"
+      final String fileName =
+          sprite.split('/').last; // e.g., "12_spriteone.png"
 
       // Extract the hexadecimal prefix and the sprite name
       final String hexPrefix = fileName.split('_').first; // e.g., "12"
@@ -472,8 +488,7 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
 
       if (hexValue == null) {
         _log.severe('invalid hex prefix: $hexPrefix for asset $sprite');
-      }
-      else {
+      } else {
         // Add the hex value and sprite to the map
         spriteMap[hexValue] = sprite;
       }
@@ -489,20 +504,24 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
   Future<void> _uploadSprites(Map<int, String> spriteMap) async {
     for (var entry in spriteMap.entries) {
       try {
-        var sprite = TxSprite.fromPngBytes(msgCode: entry.key, pngBytes: Uint8List.sublistView(await rootBundle.load(entry.value)));
+        var sprite = TxSprite.fromPngBytes(
+            msgCode: entry.key,
+            pngBytes:
+                Uint8List.sublistView(await rootBundle.load(entry.value)));
 
         // send sprite to Frame with its associated message type
         await frame!.sendMessage(sprite);
         await Future.delayed(const Duration(milliseconds: 200));
-      }
-      catch (e) {
+      } catch (e) {
         _log.severe('$e');
       }
     }
   }
 
   Future<void> showLoadingScreen() async {
-    await frame!.sendString('frame.display.text("Loading...",1,1) frame.display.show()', awaitResponse: false);
+    await frame!.sendString(
+        'frame.display.text("Loading...",1,1) frame.display.show()',
+        awaitResponse: false);
   }
 
   /// the SimpleFrameApp subclass implements application-specific code

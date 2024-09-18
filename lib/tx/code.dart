@@ -12,6 +12,6 @@ class TxCode extends TxMsg {
 
   @override
   Uint8List pack() {
-     return Uint8List.fromList([value & 0xFF]);
+    return Uint8List.fromList([value & 0xFF]);
   }
 }
