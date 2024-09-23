@@ -174,4 +174,29 @@ class TxSprite extends TxMsg {
 
     return packed;
   }
+
+  /// Convert TxSprite back to an image for testing/verification
+  img.Image toImage() {
+    // set up the indexed palette
+    img.PaletteUint8 pal = img.PaletteUint8(_numColors, 3);
+    pal.buffer.asUint8List().setAll(0, _paletteData);
+
+    // TODO Image.palette() doesn't seem to correctly create indexed image.
+    // instead, expand out the image to RGB pixels since this is just for phoneside display
+    var data = img.ImageDataUint8(_width, _height, 3);
+    int pixNum = 0;
+
+    for (var palEntry in _pixelData) {
+      data.setPixelRgb(
+        pixNum % _width,
+        pixNum ~/ _width,
+        _paletteData[palEntry * 3],
+        _paletteData[palEntry * 3 + 1],
+        _paletteData[palEntry * 3 + 2]);
+
+      pixNum++;
+    }
+
+    return img.Image.fromBytes(width: _width, height: _height, bytes: data.buffer, numChannels: 3);
+  }
 }
