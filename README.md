@@ -45,7 +45,7 @@ await frame!.sendMessage(takePhoto);
 Uint8List imageData = await imageDataResponse(frame!.dataResponse, 50).first;
 
 // send a custom message and value to the Lua app running on Frame
-frame!.sendMessage(TxCode(msgCode: 0x0e, value: 1));
+await frame!.sendMessage(TxCode(msgCode: 0x0e, value: 1));
 
 // send a sprite to Frame with an identifying message code
 var sprite = TxSprite.fromPngBytes(msgCode: 0x2F, pngBytes: bytesFromFileOrWeb);
