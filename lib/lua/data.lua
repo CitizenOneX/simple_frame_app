@@ -86,7 +86,9 @@ function _M.process_raw_items()
         if parsers[flag] == nil then
             print('Error: No parser for flag: ' .. tostring(flag))
         else
-            app_data[flag] = parsers[flag](block)
+            -- call the parser and pass in the previous value in
+            -- case it accumulates, like the text_sprite_block can
+            app_data[flag] = parsers[flag](block, app_data[flag])
 
             -- then clear out the raw data
             app_data_block[flag] = nil
