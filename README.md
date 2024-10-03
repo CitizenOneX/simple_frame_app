@@ -13,7 +13,7 @@ Flutter and Lua quickstart app scaffolding and standard library functions for Br
 
 * Connect/disconnect via bluetooth (`flutter_blue_plus` package)
 * Send and display Sprites on Frame (from both pre-made image assets and also dynamically-sourced)
-* Send text for display on Frame
+* Send text for display on Frame (TxPlainText and TxTextSpriteBlock for Unicode/RTL)
 * Request and process JPG images from Frame camera (`image` package)
 * Automatically loads custom Lua scripts onto Frame on app startup, deletes them on app exit
 * Automatically loads sprite assets into Frame memory on app startup
