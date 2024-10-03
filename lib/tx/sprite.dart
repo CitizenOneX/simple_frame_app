@@ -188,15 +188,16 @@ class TxSprite extends TxMsg {
 
     for (var palEntry in _pixelData) {
       data.setPixelRgb(
-        pixNum % _width,
-        pixNum ~/ _width,
-        _paletteData[palEntry * 3],
-        _paletteData[palEntry * 3 + 1],
-        _paletteData[palEntry * 3 + 2]);
+          pixNum % _width,
+          pixNum ~/ _width,
+          _paletteData[palEntry * 3],
+          _paletteData[palEntry * 3 + 1],
+          _paletteData[palEntry * 3 + 2]);
 
       pixNum++;
     }
 
-    return img.Image.fromBytes(width: _width, height: _height, bytes: data.buffer, numChannels: 3);
+    return img.Image.fromBytes(
+        width: _width, height: _height, bytes: data.buffer, numChannels: 3);
   }
 }

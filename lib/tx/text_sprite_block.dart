@@ -40,8 +40,18 @@ class TxTextSpriteBlock extends TxMsg {
   /// and the user then sends each line[] as a TxSprite message with the same msgCode as the Block, and the frame app will use the offsets
   /// to place each line. By sending each line separately we can display them as they arrive, as well as reducing overall memory
   /// requirement (each concat() call is smaller)
-  TxTextSpriteBlock({required super.msgCode, required int width, required int fontSize, required int displayRows, String? fontFamily, ui.TextAlign textAlign = ui.TextAlign.left, ui.TextDirection textDirection = ui.TextDirection.ltr, required String text}) : _msgCode = msgCode, _width = width, _fontSize = fontSize {
-
+  TxTextSpriteBlock(
+      {required super.msgCode,
+      required int width,
+      required int fontSize,
+      required int displayRows,
+      String? fontFamily,
+      ui.TextAlign textAlign = ui.TextAlign.left,
+      ui.TextDirection textDirection = ui.TextDirection.ltr,
+      required String text})
+      : _msgCode = msgCode,
+        _width = width,
+        _fontSize = fontSize {
     final paragraphBuilder = ui.ParagraphBuilder(ui.ParagraphStyle(
       textAlign: textAlign,
       textDirection: textDirection,
@@ -64,7 +74,9 @@ class TxTextSpriteBlock extends TxMsg {
 
     // work out height using metrics after paragraph.layout() call
     _lineMetrics = paragraph.computeLineMetrics();
-    _totalHeight =(_lineMetrics.fold<double>(0, (prev, lm) { return prev + lm.height;})).toInt();
+    _totalHeight = (_lineMetrics.fold<double>(0, (prev, lm) {
+      return prev + lm.height;
+    })).toInt();
   }
 
   /// Since the Paragraph rasterizing to the Canvas, and the getting of the Image bytes
@@ -73,11 +85,11 @@ class TxTextSpriteBlock extends TxMsg {
     if (_lineMetrics.isNotEmpty) {
       _image = await _picture.toImage(_width, _totalHeight);
 
-      var byteData = (await _image.toByteData(format: ui.ImageByteFormat.rawUnmodified))!;
+      var byteData =
+          (await _image.toByteData(format: ui.ImageByteFormat.rawUnmodified))!;
 
       // loop over each line of text in the paragraph and create a TxSprite
       for (var line in _lineMetrics) {
-
         int tlX = line.left.toInt();
         int tlY = (line.baseline - line.ascent).toInt();
         int lineWidth = line.width.toInt();
@@ -85,9 +97,10 @@ class TxTextSpriteBlock extends TxMsg {
 
         var linePixelData = Uint8List(lineWidth * lineHeight);
 
-        for (int i=0; i<lineHeight; i++) {
+        for (int i = 0; i < lineHeight; i++) {
           // take one row of the source image byteData, remembering it's in RGBA so 4 bytes per pixel
-          var sourceRow = byteData.buffer.asUint8List(((tlY+i)*_width+tlX)*4, lineWidth*4);
+          var sourceRow = byteData.buffer
+              .asUint8List(((tlY + i) * _width + tlX) * 4, lineWidth * 4);
 
           for (int j = 0; j < lineWidth; j++) {
             // take only every 4th byte because the source buffer is RGBA
@@ -97,21 +110,29 @@ class TxTextSpriteBlock extends TxMsg {
         }
 
         // make a Sprite out of the line and add to the list
-        _lines.add(TxSprite(msgCode: _msgCode, width: lineWidth, height: lineHeight, numColors: 2, paletteData: _getPalette().data, pixelData: linePixelData));
+        _lines.add(TxSprite(
+            msgCode: _msgCode,
+            width: lineWidth,
+            height: lineHeight,
+            numColors: 2,
+            paletteData: _getPalette().data,
+            pixelData: linePixelData));
       }
     }
   }
 
   /// Convert TxTextSpriteBlock back to a single image for testing/verification
   Future<Uint8List> toPngBytes() async {
-    if (_lineMetrics.isEmpty) throw Exception('call rasterize() before toPngBytes');
+    if (_lineMetrics.isEmpty)
+      throw Exception('call rasterize() before toPngBytes');
 
     // create an image for the whole block
     var preview = img.Image(width: width, height: _totalHeight);
 
     // copy in each of the sprites
-    for (int i=0; i<lines.length; i++) {
-      img.compositeImage(preview, lines[i].toImage(), dstY: (_lineMetrics[i].baseline - _lineMetrics[i].ascent).toInt());
+    for (int i = 0; i < lines.length; i++) {
+      img.compositeImage(preview, lines[i].toImage(),
+          dstY: (_lineMetrics[i].baseline - _lineMetrics[i].ascent).toInt());
     }
 
     return img.encodePng(preview);
@@ -128,17 +149,25 @@ class TxTextSpriteBlock extends TxMsg {
     // store the x (16-bit) and y (16-bit) offsets as pairs for each of the lines
     Uint8List offsets = Uint8List(_lineMetrics.length * 4);
 
-    for (int i=0; i<_lineMetrics.length; i++) {
+    for (int i = 0; i < _lineMetrics.length; i++) {
       var lm = _lineMetrics[i];
       int xOffset = lm.left.toInt();
       int yOffset = (lm.baseline - lm.ascent).toInt();
-      offsets[4*i] = xOffset >> 8;
-      offsets[4*i + 1] = xOffset & 0xFF;
-      offsets[4*i + 2] = yOffset >> 8;
-      offsets[4*i + 3] = yOffset & 0xFF;
+      offsets[4 * i] = xOffset >> 8;
+      offsets[4 * i + 1] = xOffset & 0xFF;
+      offsets[4 * i + 2] = yOffset >> 8;
+      offsets[4 * i + 3] = yOffset & 0xFF;
     }
 
     // special marker for Block header 0xFF, size of the block (WxH), num lines, offsets within block for each line
-    return Uint8List.fromList([0xFF, widthMsb, widthLsb, heightMsb, heightLsb, _lines.length & 0xFF, ...offsets]);
+    return Uint8List.fromList([
+      0xFF,
+      widthMsb,
+      widthLsb,
+      heightMsb,
+      heightLsb,
+      _lines.length & 0xFF,
+      ...offsets
+    ]);
   }
 }
