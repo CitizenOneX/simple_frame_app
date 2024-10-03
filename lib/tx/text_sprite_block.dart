@@ -40,16 +40,18 @@ class TxTextSpriteBlock extends TxMsg {
   /// and the user then sends each line[] as a TxSprite message with the same msgCode as the Block, and the frame app will use the offsets
   /// to place each line. By sending each line separately we can display them as they arrive, as well as reducing overall memory
   /// requirement (each concat() call is smaller)
-  TxTextSpriteBlock({required super.msgCode, required int width, required int fontSize, required int displayRows, String? fontFamily, required String text}) : _msgCode = msgCode, _width = width, _fontSize = fontSize {
+  TxTextSpriteBlock({required super.msgCode, required int width, required int fontSize, required int displayRows, String? fontFamily, ui.TextAlign textAlign = ui.TextAlign.left, ui.TextDirection textDirection = ui.TextDirection.ltr, required String text}) : _msgCode = msgCode, _width = width, _fontSize = fontSize {
 
     final paragraphBuilder = ui.ParagraphBuilder(ui.ParagraphStyle(
-      textAlign: ui.TextAlign.start, // TODO pass this in to constructor
-      textDirection: ui.TextDirection.ltr, // TODO pass this in to constructor
+      textAlign: textAlign,
+      textDirection: textDirection,
       fontFamily: fontFamily, // gets platform default if null
-      fontSize: _fontSize.toDouble(), // Adjust font size as needed, pass in to constructor
+      fontSize: _fontSize.toDouble(), // Adjust font size as needed
     ));
 
-    paragraphBuilder.addText(text);
+    // trim whitespace around text - in particular, a trailing newline char leads to a final line of text with zero
+    // width, which results in a sprite that can't be drawn and caused problems frameside
+    paragraphBuilder.addText(text.trim());
     final paragraph = paragraphBuilder.build();
 
     final pictureRecorder = ui.PictureRecorder();
