@@ -15,27 +15,27 @@ function _M.parse_camera_settings(data)
 	-- exposure maps from 0..255 to -2.0..+2.0
 	camera_settings.quality = quality_values[string.byte(data, 1) + 1]
 	camera_settings.auto_exp_gain_times = string.byte(data, 2)
-	camera_settings.metering_mode = metering_values[string.byte(data, 3) + 1]
-	camera_settings.exposure = (string.byte(data, 4) - 128) / 64.0
-	camera_settings.shutter_kp = string.byte(data, 5) / 10.0
+	camera_settings.metering = metering_values[string.byte(data, 3) + 1]
+	camera_settings.exposure = string.byte(data, 4) / 255.0
+	camera_settings.exposure_speed = string.byte(data, 5) / 255.0
 	camera_settings.shutter_limit = string.byte(data, 6) << 8 | string.byte(data, 7)
-	camera_settings.gain_kp = string.byte(data, 8) / 10.0
-	camera_settings.gain_limit = string.byte(data, 9)
+	camera_settings.analog_gain_limit = string.byte(data, 8)
+	camera_settings.white_balance_speed = string.byte(data, 9) / 255.0
 	return camera_settings
 end
 
 function _M.camera_capture_and_send(args)
 	quality = args.quality or 50
 	auto_exp_gain_times = args.auto_exp_gain_times or 0
-	metering_mode = args.metering_mode or 'SPOT'
-	exposure = args.exposure or 0
-	shutter_kp = args.shutter_kp or 0.1
-	shutter_limit = args.shutter_limit or 6000
-	gain_kp = args.gain_kp or 1.0
-	gain_limit = args.gain_limit or 248.0
+	metering = args.metering or 'AVERAGE'
+	exposure = args.exposure or 0.18
+	exposure_speed = args.exposure_speed or 0.5
+	shutter_limit = args.shutter_limit or 800
+	analog_gain_limit = args.analog_gain_limit or 248.0
+	white_balance_speed = args.white_balance_speed or 0.5
 
 	for run=1,auto_exp_gain_times,1 do
-		frame.camera.auto { metering = metering_mode, exposure = exposure, shutter_kp = shutter_kp, shutter_limit = shutter_limit, gain_kp = gain_kp, gain_limit = gain_limit }
+		frame.camera.auto { metering = metering, exposure = exposure, exposure_speed = exposure_speed, shutter_limit = shutter_limit, analog_gain_limit = analog_gain_limit, white_balance_speed = white_balance_speed }
 		frame.sleep(0.1)
 	end
 
