@@ -434,33 +434,11 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
     if (mounted) setState(() {});
   }
 
-  /// When given the full list of Assets, return only the Lua files (and give .min.lua minified files precedence)
-  /// Note that file strings will be 'assets/my_file.lua' which we need to find the asset in Flutter,
+  /// When given the full list of Assets, return only the Lua files
+  /// Note that returned file strings will be 'assets/my_file.lua' or 'assets/my_other_file.min.lua' which we need to use to find the asset in Flutter,
   /// but we need to file.split('/').last if we only want the file name when writing/deleting the file on Frame in the root of its filesystem
-  /// TODO remove precedence for .min.lua files - only one or the other should be specified in assets:
   List<String> _filterLuaFiles(List<String> files) {
-    // Create a map to store the base file names without extensions.
-    Map<String, String> luaFilesMap = {};
-
-    for (String file in files) {
-      // Check if the file ends with .lua or .min.lua
-      if (file.endsWith('.lua')) {
-        String baseName;
-        if (file.endsWith('.min.lua')) {
-          baseName = file.replaceAll('.min.lua', '');
-        } else {
-          baseName = file.replaceAll('.lua', '');
-        }
-
-        // Store the file in the map, giving priority to .min.lua files
-        if (!luaFilesMap.containsKey(baseName) || file.endsWith('.min.lua')) {
-          luaFilesMap[baseName] = file;
-        }
-      }
-    }
-
-    // Return the filtered list of Lua files
-    return luaFilesMap.values.toList();
+    return files.where((name)=>name.endsWith('.lua')).toList();
   }
 
   /// Loops over each of the sprites in the assets/sprites directory (and declared in pubspec.yaml) and returns an entry with
