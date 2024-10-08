@@ -123,8 +123,9 @@ class TxTextSpriteBlock extends TxMsg {
 
   /// Convert TxTextSpriteBlock back to a single image for testing/verification
   Future<Uint8List> toPngBytes() async {
-    if (_lineMetrics.isEmpty)
-      throw Exception('call rasterize() before toPngBytes');
+    if (_lines.isEmpty) {
+      throw Exception('_lines is empty: call rasterize() before toPngBytes()');
+    }
 
     // create an image for the whole block
     var preview = img.Image(width: width, height: _totalHeight);
@@ -141,6 +142,10 @@ class TxTextSpriteBlock extends TxMsg {
   /// Corresponding parser should be called from frame_app data handler
   @override
   Uint8List pack() {
+    if (_lines.isEmpty) {
+      throw Exception('_lines is empty: call rasterize() before pack()');
+    }
+
     int widthMsb = _width >> 8;
     int widthLsb = _width & 0xFF;
     int heightMsb = _totalHeight >> 8;
