@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
 import 'package:simple_frame_app/simple_frame_app.dart';
+import 'package:simple_frame_app/tx/code.dart';
+import 'package:simple_frame_app/tx/plain_text.dart';
 
 void main() => runApp(const MainApp());
 
@@ -30,7 +32,13 @@ class MainAppState extends State<MainApp> with SimpleFrameAppState {
     if (mounted) setState(() {});
 
     try {
-      // TODO do something
+      // TODO do something, e.g. send some text, wait a while, send a clear message
+      // Check the assets/frame_app.lua to find the corresponding frameside handling for these arbitrarily-chosen msgCodes
+      await frame!.sendMessage(TxPlainText(msgCode: 0x12, text: 'Hello, Frame!'));
+
+      await Future.delayed(const Duration(seconds: 10));
+
+      await frame!.sendMessage(TxCode(msgCode: 0x10));
 
       currentState = ApplicationState.ready;
       if (mounted) setState(() {});
