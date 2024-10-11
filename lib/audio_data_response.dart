@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:typed_data';
 
 import 'package:logging/logging.dart';
@@ -29,14 +30,13 @@ Stream<Uint8List> audioDataResponse(Stream<List<int>> dataResponse) {
         .listen((data) {
       if (data[0] == nonFinalChunkFlag) {
         _log.finer('Non-final: ${data.length}');
-        // pity that BytesBuilder doesn't take an Iterable<int> so I can't use data.skip(1), so the List is copied into a new List before being iterated over anyway
-        audioData.add(data.sublist(1));
+        audioData.add(UnmodifiableListView(data.skip(1)));
         rawOffset += data.length - 1;
       }
       // the last chunk has a first byte of 8 so stop after this
       else if (data[0] == finalChunkFlag) {
         _log.finer('Final: ${data.length}');
-        audioData.add(data.sublist(1));
+        audioData.add(UnmodifiableListView(data.skip(1)));
         rawOffset += data.length - 1;
 
         // When full audio data is received, emit it and clear the buffer
