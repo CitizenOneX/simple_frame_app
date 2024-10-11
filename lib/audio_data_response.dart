@@ -13,7 +13,7 @@ const finalChunkFlag = 0x06;
 Stream<Uint8List> audioDataResponse(Stream<List<int>> dataResponse) {
 
   // the image data as a list of bytes that accumulates with each packet
-  List<int> audioData = List.empty(growable: true);
+  BytesBuilder audioData = BytesBuilder(copy: false);
   int rawOffset = 0;
 
   // the subscription to the underlying data stream
@@ -29,18 +29,18 @@ Stream<Uint8List> audioDataResponse(Stream<List<int>> dataResponse) {
         .listen((data) {
       if (data[0] == nonFinalChunkFlag) {
         _log.finer('Non-final: ${data.length}');
-        audioData += data.sublist(1);
+        // pity that BytesBuilder doesn't take an Iterable<int> so I can't use data.skip(1), so the List is copied into a new List before being iterated over anyway
+        audioData.add(data.sublist(1));
         rawOffset += data.length - 1;
       }
       // the last chunk has a first byte of 8 so stop after this
       else if (data[0] == finalChunkFlag) {
         _log.finer('Final: ${data.length}');
-        audioData += data.sublist(1);
+        audioData.add(data.sublist(1));
         rawOffset += data.length - 1;
 
-        // When full image data is received, emit it and clear the buffer
-        controller.add(Uint8List.fromList(audioData));
-        audioData.clear();
+        // When full audio data is received, emit it and clear the buffer
+        controller.add(audioData.takeBytes());
         rawOffset = 0;
       }
       _log.finer('Chunk size: ${data.length - 1}, rawOffset: $rawOffset');
