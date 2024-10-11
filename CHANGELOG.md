@@ -9,4 +9,8 @@
 
 ## 0.0.7
 
-* updated camera code (lua and dart) with camera parameters from recent firmware updates - exposure_speed, analog_gain_limit, white_balance_speed etc.
+* Updated camera code (lua and dart) with camera parameters from recent firmware updates - exposure_speed, analog_gain_limit, white_balance_speed etc.
+
+## 0.0.8
+
+* Added initial `audioDataResponse` support for Frame audio data
