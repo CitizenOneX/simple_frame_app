@@ -92,7 +92,7 @@ class BrilliantDevice {
         .where((event) => event[0] != 0x01)
         .map((event) {
       if (event[0] != 0x02) {
-        _log.info("Received string: ${utf8.decode(event)}");
+        _log.info(() => "Received string: ${utf8.decode(event)}");
       }
       return utf8.decode(event);
     });
@@ -103,7 +103,7 @@ class BrilliantDevice {
     return _rxChannel!.onValueReceived
         .where((event) => event[0] == 0x01)
         .map((event) {
-      _log.finest("Received data: ${event.sublist(1)}");
+      _log.finest(() => "Received data: ${event.sublist(1)}");
       return event.sublist(1);
     });
   }
@@ -143,7 +143,7 @@ class BrilliantDevice {
   }) async {
     try {
       if (log) {
-        _log.info("Sending string: $string");
+        _log.info(() => "Sending string: $string");
       }
 
       if (state != BrilliantConnectionState.connected) {
@@ -173,7 +173,7 @@ class BrilliantDevice {
 
   Future<void> sendData(List<int> data) async {
     try {
-      _log.finer("Sending ${data.length} bytes of plain data");
+      _log.finer(() => "Sending ${data.length} bytes of plain data");
       _log.finest(data);
 
       if (state != BrilliantConnectionState.connected) {
@@ -196,7 +196,7 @@ class BrilliantDevice {
   /// Same as sendData but user includes the 0x01 header byte to avoid extra memory allocation
   Future<void> sendDataRaw(Uint8List data) async {
     try {
-      _log.finer("Sending ${data.length - 1} bytes of plain data");
+      _log.finer(() => "Sending ${data.length - 1} bytes of plain data");
       _log.finest(data);
 
       if (state != BrilliantConnectionState.connected) {
@@ -243,7 +243,7 @@ class BrilliantDevice {
     // instead point packetToSend to a range within packetBuffer
     Uint8List packetBuffer = Uint8List(maxDataLength! + 1);
     Uint8List packetToSend = packetBuffer;
-    _log.fine('sendMessage: payload size: ${payload.length}');
+    _log.fine(() => 'sendMessage: payload size: ${payload.length}');
 
     while (sentBytes < payload.length) {
       if (firstPacket) {
@@ -316,7 +316,7 @@ class BrilliantDevice {
       await Future.delayed(const Duration(milliseconds: 50));
 
       bytesRemaining = payload.length - sentBytes;
-      _log.finer('Bytes remaining: $bytesRemaining');
+      _log.finer(() => 'Bytes remaining: $bytesRemaining');
     }
   }
 
@@ -429,7 +429,7 @@ class BrilliantBluetooth {
         }
       }
 
-      _log.fine(
+      _log.fine(() =>
           "Found ${nearestDevice.device.advName} rssi: ${nearestDevice.rssi}");
 
       return BrilliantScannedDevice(
@@ -478,7 +478,7 @@ class BrilliantBluetooth {
 
   static Future<BrilliantDevice> reconnect(String uuid) async {
     try {
-      _log.info("Will re-connect to device: $uuid once found");
+      _log.info(() => "Will re-connect to device: $uuid once found");
 
       BluetoothDevice device = BluetoothDevice.fromId(uuid);
 
@@ -495,7 +495,7 @@ class BrilliantBluetooth {
           (state == BluetoothConnectionState.disconnected &&
               device.disconnectReason != null));
 
-      _log.info("Found reconnectable device: $uuid");
+      _log.info(() => "Found reconnectable device: $uuid");
 
       if (connectionState == BluetoothConnectionState.connected) {
         return await _enableServices(device);
@@ -540,8 +540,8 @@ class BrilliantBluetooth {
 
             finalDevice.maxStringLength = device.mtuNow - 3;
             finalDevice.maxDataLength = device.mtuNow - 4;
-            _log.fine("Max string length: ${finalDevice.maxStringLength}");
-            _log.fine("Max data length: ${finalDevice.maxDataLength}");
+            _log.fine(() => "Max string length: ${finalDevice.maxStringLength}");
+            _log.fine(() => "Max data length: ${finalDevice.maxDataLength}");
           }
         }
       }

@@ -43,7 +43,7 @@ class MainAppState extends State<MainApp> with SimpleFrameAppState {
       currentState = ApplicationState.ready;
       if (mounted) setState(() {});
     } catch (e) {
-      _log.fine('Error executing application logic: $e');
+      _log.fine(() => 'Error executing application logic: $e');
       currentState = ApplicationState.ready;
       if (mounted) setState(() {});
     }

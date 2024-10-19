@@ -58,7 +58,7 @@ Stream<Uint8List> imageDataResponse(
         imageData.clear();
         rawOffset = 0;
       }
-      _log.finer('Chunk size: ${data.length - 1}, rawOffset: $rawOffset');
+      _log.finer(() => 'Chunk size: ${data.length - 1}, rawOffset: $rawOffset');
     }, onDone: controller.close, onError: controller.addError);
     _log.fine('Controller being listened to');
   };
