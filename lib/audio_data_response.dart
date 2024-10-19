@@ -10,7 +10,8 @@ final _log = Logger("AudioDR");
 const nonFinalChunkFlag = 0x05;
 const finalChunkFlag = 0x06;
 
-/// Audio data stream using non-final and final message types
+/// Audio data stream with a single element of a raw audio clip
+/// (using non-final and final message types to accumulate from Frame)
 Stream<Uint8List> audioDataResponse(Stream<List<int>> dataResponse) {
 
   // the image data as a list of bytes that accumulates with each packet
@@ -61,16 +62,22 @@ Stream<Uint8List> audioDataResponse(Stream<List<int>> dataResponse) {
 }
 
 /// Real-time Audio data stream
+/// A listener can subscribe and unsubscribe and resubscribe to the returned broadcast Stream
+/// multiple times. The Stream only is Done when the final chunk message code is sent
+/// from Frame
 Stream<Uint8List> audioDataStreamResponse(Stream<List<int>> dataResponse) {
 
   // the subscription to the underlying data stream
   StreamSubscription<List<int>>? dataResponseSubs;
 
   // Our stream controller that transforms/accumulates the raw data into audio (as bytes)
-  StreamController<Uint8List> controller = StreamController();
+  // It needs to be a broadcast stream so users can subscribe, unsubscribe, then resubscribe
+  // to the same stream
+  StreamController<Uint8List> controller = StreamController.broadcast();
 
   controller.onListen = () {
     _log.fine('AudioDataResponse stream subscribed');
+    dataResponseSubs?.cancel();
     dataResponseSubs = dataResponse
       .where(
           (data) => data[0] == nonFinalChunkFlag || data[0] == finalChunkFlag)
@@ -103,8 +110,9 @@ Stream<Uint8List> audioDataStreamResponse(Stream<List<int>> dataResponse) {
     _log.fine('AudioDataResponse stream unsubscribed');
     // unsubscribe from upstream dataResponse
     dataResponseSubs?.cancel();
-    // no subscribers to receive a Done event, but just close to indicate no further events will be raised
-    controller.close();
+
+    // don't close the controller, if the listener re-subscribes
+    // then we continue sending data
   };
 
   return controller.stream;
