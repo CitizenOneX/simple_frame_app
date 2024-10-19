@@ -220,6 +220,7 @@ class TextUtils {
     return numLines * _lineHeight;
   }
 
+  @deprecated
   static String wrapText(String text, int maxWidth, int charSpacing) {
     List<String> lines = text.split("\n");
     String output = "";
@@ -246,5 +247,40 @@ class TextUtils {
       }
     }
     return output.trimRight();
+  }
+
+  static List<String> wrapTextSplit(String text, int maxWidth, int charSpacing) {
+    List<String> lines = text.split("\n");
+    List<String> output = List.empty(growable: true);
+
+    for (String line in lines) {
+      String trimmedLine = line.trim();
+      if (trimmedLine.isEmpty) {
+        continue;
+      }
+      else if (getTextWidth(trimmedLine, charSpacing) <= maxWidth) {
+        output.add(trimmedLine);
+      }
+      else {
+        String thisLine = "";
+        List<String> words = trimmedLine.split(" ");
+        for (String word in words) {
+          if (getTextWidth("$thisLine $word", charSpacing) > maxWidth) {
+            // TODO handle case in which first word > maxWidth
+            // TODO shouldn't really be measuring length with the leading space char
+            output.add(thisLine);
+            thisLine = word;
+          } else if (thisLine.isEmpty) {
+            thisLine = word;
+          } else {
+            thisLine += " $word";
+          }
+        }
+        if (thisLine.isNotEmpty) {
+          output.add(thisLine.trim());
+        }
+      }
+    }
+    return output;
   }
 }
