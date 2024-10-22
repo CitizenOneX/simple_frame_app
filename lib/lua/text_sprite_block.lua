@@ -22,6 +22,11 @@ function _M.parse_text_sprite_block(data, prev)
 		text_sprite_block.sprites = {}
 		return text_sprite_block
 	else
+		-- no existing TextSpriteBlock to accumulate into, drop this sprite
+		if prev == nil then
+			return nil
+		end
+
 		-- new text sprite line
 		local sprite = {}
 		sprite.width = string.byte(data, 1) << 8 | string.byte(data, 2)

@@ -15,6 +15,7 @@ class TxTextSpriteBlock extends TxMsg {
   List<TxSprite> get lines => _lines;
 
   late final List<ui.LineMetrics> _lineMetrics;
+  late final List<ui.LineMetrics> _displayLineMetrics;
   late final int _totalHeight;
   late final ui.Picture _picture;
   late final ui.Image _image;
@@ -33,9 +34,9 @@ class TxTextSpriteBlock extends TxMsg {
   }
 
   /// Represents an (optionally) multi-line block of text of a specified width and number of visible rows at a specified lineHeight
-  /// If the supplied text string is longer, only displayRows will be shown but each TextSpriteLine will be rendered and sent to Frame
-  /// If the supplied text string has fewer than displayRows, only the number of actual rows will be rendered and sent to Frame
-  /// If any given line of text is shorter than width, the TextSpriteLine will be set to the actual width required.
+  /// If the supplied text string is longer, only the last `displayRows` will be shown rendered and sent to Frame.
+  /// If the supplied text string has fewer than or equal to `displayRows`, only the number of actual rows will be rendered and sent to Frame
+  /// If any given line of text is shorter than width, the text Sprite will be set to the actual width required.
   /// When sending TxTextSpriteBlock to Frame, the sendMessage() will send the header with block dimensions and line-by-line offsets
   /// and the user then sends each line[] as a TxSprite message with the same msgCode as the Block, and the frame app will use the offsets
   /// to place each line. By sending each line separately we can display them as they arrive, as well as reducing overall memory
@@ -61,6 +62,7 @@ class TxTextSpriteBlock extends TxMsg {
 
     // trim whitespace around text - in particular, a trailing newline char leads to a final line of text with zero
     // width, which results in a sprite that can't be drawn and caused problems frameside
+    // TODO would a double line break have the same issue?
     paragraphBuilder.addText(text.trim());
     final paragraph = paragraphBuilder.build();
 
@@ -74,7 +76,13 @@ class TxTextSpriteBlock extends TxMsg {
 
     // work out height using metrics after paragraph.layout() call
     _lineMetrics = paragraph.computeLineMetrics();
-    _totalHeight = (_lineMetrics.fold<double>(0, (prev, lm) {
+
+    // take the last `displayRows` lines only
+    _displayLineMetrics = _lineMetrics.length - displayRows <= 0 ?
+      _lineMetrics :
+      _lineMetrics.sublist(_lineMetrics.length - displayRows);
+
+    _totalHeight = (_displayLineMetrics.fold<double>(0, (prev, lm) {
       return prev + lm.height;
     })).toInt();
   }
@@ -82,14 +90,14 @@ class TxTextSpriteBlock extends TxMsg {
   /// Since the Paragraph rasterizing to the Canvas, and the getting of the Image bytes
   /// are async functions
   Future<void> rasterize() async {
-    if (_lineMetrics.isNotEmpty) {
+    if (_displayLineMetrics.isNotEmpty) {
       _image = await _picture.toImage(_width, _totalHeight);
 
       var byteData =
           (await _image.toByteData(format: ui.ImageByteFormat.rawUnmodified))!;
 
       // loop over each line of text in the paragraph and create a TxSprite
-      for (var line in _lineMetrics) {
+      for (var line in _displayLineMetrics) {
         int tlX = line.left.toInt();
         int tlY = (line.baseline - line.ascent).toInt();
         int lineWidth = line.width.toInt();
@@ -133,7 +141,7 @@ class TxTextSpriteBlock extends TxMsg {
     // copy in each of the sprites
     for (int i = 0; i < lines.length; i++) {
       img.compositeImage(preview, lines[i].toImage(),
-          dstY: (_lineMetrics[i].baseline - _lineMetrics[i].ascent).toInt());
+          dstY: (_displayLineMetrics[i].baseline - _displayLineMetrics[i].ascent).toInt());
     }
 
     return img.encodePng(preview);
@@ -152,10 +160,10 @@ class TxTextSpriteBlock extends TxMsg {
     int heightLsb = _totalHeight & 0xFF;
 
     // store the x (16-bit) and y (16-bit) offsets as pairs for each of the lines
-    Uint8List offsets = Uint8List(_lineMetrics.length * 4);
+    Uint8List offsets = Uint8List(_displayLineMetrics.length * 4);
 
-    for (int i = 0; i < _lineMetrics.length; i++) {
-      var lm = _lineMetrics[i];
+    for (int i = 0; i < _displayLineMetrics.length; i++) {
+      var lm = _displayLineMetrics[i];
       int xOffset = lm.left.toInt();
       int yOffset = (lm.baseline - lm.ascent).toInt();
       offsets[4 * i] = xOffset >> 8;
