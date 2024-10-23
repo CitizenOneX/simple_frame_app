@@ -30,3 +30,7 @@
 ## 1.0.0
 
 * removed deprecated `*DataResponse` functions, use `Rx` classes instead (`RxAudio`, `RxPhoto`, `RxTap`)
+
+## 1.0.1
+
+* fixed TextUtils to change wrapTextSplit to wrapText, i.e. wrapText now returns List<String>, join('\n') the result if a single string is required
