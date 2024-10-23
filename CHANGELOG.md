@@ -21,3 +21,8 @@
 * Added `tapDataReponse` as a multi-tap-detection subscription from Frame
 * Added `wrapTextSplit` and deprecated `wrapText` in `TextUtils`, returning a `List<String>` instead of a `String` so the caller to quickly select the first, last or a sliding window of Strings to enable scrolling. If a newline-joined single String is desired, it can quickly be assembled with a `join()`
 * Performance: modified logging calls with expensive string interpolations to use a closure so they are not evaluated if not logged at the current logging level
+
+## 0.1.0
+
+* Added `Rx` classes in place of `imageDataResponse`, `audioDataResponse`, `tapDataResponse`.
+* Deprecated `TextUtils.wrapText(Split)`, going forward use the `wrapText` that returns a List of Strings and join them if you need the single String
