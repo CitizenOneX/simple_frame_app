@@ -26,3 +26,7 @@
 
 * Added `Rx` classes in place of `imageDataResponse`, `audioDataResponse`, `tapDataResponse`.
 * Deprecated `TextUtils.wrapText(Split)`, going forward use the `wrapText` that returns a List of Strings and join them if you need the single String
+
+## 1.0.0
+
+* removed deprecated `*DataResponse` functions, use `Rx` classes instead (`RxAudio`, `RxPhoto`, `RxTap`)
