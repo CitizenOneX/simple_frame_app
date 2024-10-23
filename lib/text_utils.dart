@@ -220,37 +220,7 @@ class TextUtils {
     return numLines * _lineHeight;
   }
 
-  @Deprecated('will return List<String> in next major version')
-  static String wrapText(String text, int maxWidth, int charSpacing) {
-    List<String> lines = text.split("\n");
-    String output = "";
-
-    for (String line in lines) {
-      if (getTextWidth(line, charSpacing) <= maxWidth) {
-        output += "$line\n";
-      } else {
-        String thisLine = "";
-        List<String> words = line.split(" ");
-        for (String word in words) {
-          if (getTextWidth("$thisLine $word", charSpacing) > maxWidth) {
-            output += "$thisLine\n";
-            thisLine = word;
-          } else if (thisLine.isEmpty) {
-            thisLine = word;
-          } else {
-            thisLine += " $word";
-          }
-        }
-        if (thisLine.isNotEmpty) {
-          output += "$thisLine\n";
-        }
-      }
-    }
-    return output.trimRight();
-  }
-
-  @Deprecated('Name will change to wrapText next major version but still return List<String>')
-  static List<String> wrapTextSplit(String text, int maxWidth, int charSpacing) {
+  static List<String> wrapText(String text, int maxWidth, int charSpacing) {
     List<String> lines = text.split("\n");
     List<String> output = List.empty(growable: true);
 
