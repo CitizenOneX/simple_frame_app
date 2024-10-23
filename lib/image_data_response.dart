@@ -14,7 +14,8 @@ const finalChunkFlag = 0x08;
 /// Pairs with frame.camera.read_raw(), that is, jpeg header and footer
 /// are not sent from Frame - only the content, using non-final and final message types
 /// Jpeg header and footer are added in here on the client, so a quality level
-/// must be provided to select the correct header
+/// must be provided to select the correct header. Returns a Stream with exactly one jpeg as bytes, then is Done
+@Deprecated('Use RxPhoto')
 Stream<Uint8List> imageDataResponse(
     Stream<List<int>> dataResponse, int qualityLevel) {
   // qualityLevel must be valid (10, 25, 50, 100)
@@ -37,6 +38,7 @@ Stream<Uint8List> imageDataResponse(
   StreamController<Uint8List> controller = StreamController();
 
   controller.onListen = () {
+    _log.fine('ImageDataResponse stream subscribed');
     dataResponseSubs = dataResponse
         .where(
             (data) => data[0] == nonFinalChunkFlag || data[0] == finalChunkFlag)
@@ -57,6 +59,9 @@ Stream<Uint8List> imageDataResponse(
         controller.add(Uint8List.fromList(imageData));
         imageData.clear();
         rawOffset = 0;
+
+        // and close the stream
+        controller.close();
       }
       _log.finer(() => 'Chunk size: ${data.length - 1}, rawOffset: $rawOffset');
     }, onDone: controller.close, onError: controller.addError);
@@ -64,9 +69,9 @@ Stream<Uint8List> imageDataResponse(
   };
 
   controller.onCancel = () {
+    _log.fine('ImageDataResponse stream unsubscribed');
     dataResponseSubs?.cancel();
     controller.close();
-    _log.fine('Controller cancelled');
   };
 
   return controller.stream;

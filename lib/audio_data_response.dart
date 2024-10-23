@@ -12,6 +12,7 @@ const finalChunkFlag = 0x06;
 
 /// Audio data stream with a single element of a raw audio clip
 /// (using non-final and final message types to accumulate from Frame)
+@Deprecated('Use RxAudio.attach()')
 Stream<Uint8List> audioDataResponse(Stream<List<int>> dataResponse) {
 
   // the image data as a list of bytes that accumulates with each packet
@@ -65,6 +66,7 @@ Stream<Uint8List> audioDataResponse(Stream<List<int>> dataResponse) {
 /// A listener can subscribe and unsubscribe and resubscribe to the returned broadcast Stream
 /// multiple times. The Stream only is Done when the final chunk message code is sent
 /// from Frame
+@Deprecated('Use RxAudio(streaming: true).attach')
 Stream<Uint8List> audioDataStreamResponse(Stream<List<int>> dataResponse) {
 
   // the subscription to the underlying data stream

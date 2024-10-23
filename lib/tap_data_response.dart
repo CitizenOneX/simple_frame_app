@@ -8,12 +8,12 @@ final _log = Logger("TapDR");
 const tapFlag = 0x09;
 
 /// Multi-Tap data stream, returns the number of taps detected
+@Deprecated('Use RxTap')
 Stream<int> tapDataResponse(Stream<List<int>> dataResponse, final Duration threshold) {
 
   // the subscription to the underlying data stream
   StreamSubscription<List<int>>? dataResponseSubs;
 
-  // Our stream controller that transforms/accumulates the raw data into audio (as bytes)
   StreamController<int> controller = StreamController();
 
   // track state of multi-taps

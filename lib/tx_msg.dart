@@ -1,11 +1,11 @@
 import 'dart:typed_data';
 
+/// The base class for all Tx (transmit phone to Frame) messages that can be sent using sendMessage()
+/// which performs splitting across multiple MTU-sized packets
+/// an assembled automatically frameside by the data handler.
 abstract class TxMsg {
   final int _msgCode;
 
-  /// The base class for all Tx (transmit phone to frame) messages that can be sent using sendMessage()
-  /// which performs splitting across multiple MTU-sized packets
-  /// an assembled automatically frameside by the data handler.
   TxMsg({required int msgCode}) : _msgCode = msgCode;
 
   int get msgCode => _msgCode;

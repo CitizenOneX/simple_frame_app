@@ -220,7 +220,7 @@ class TextUtils {
     return numLines * _lineHeight;
   }
 
-  @deprecated
+  @Deprecated('will return List<String> in next major version')
   static String wrapText(String text, int maxWidth, int charSpacing) {
     List<String> lines = text.split("\n");
     String output = "";
@@ -249,6 +249,7 @@ class TextUtils {
     return output.trimRight();
   }
 
+  @Deprecated('Name will change to wrapText next major version but still return List<String>')
   static List<String> wrapTextSplit(String text, int maxWidth, int charSpacing) {
     List<String> lines = text.split("\n");
     List<String> output = List.empty(growable: true);
