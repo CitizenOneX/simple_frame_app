@@ -33,4 +33,8 @@
 
 ## 1.0.1
 
-* fixed TextUtils to change wrapTextSplit to wrapText, i.e. wrapText now returns List<String>, join('\n') the result if a single string is required
+* fixed `TextUtils` to change `wrapTextSplit` to `wrapText`, i.e. `wrapText` now returns `List<String>`, so `join('\n')` the result if a single string is required
+
+## 1.1.0
+
+* implemented `TxTextSpriteBlock` more fully to support multi-line text, including scrolling frameside when the number of lines sent exceeds maxDisplayRows. The call to `rasterize()` has been updated to require providing indices for lines to rasterize.
