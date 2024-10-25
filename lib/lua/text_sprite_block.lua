@@ -20,11 +20,29 @@ function _M.parse_text_sprite_block(data, prev)
 		end
 		text_sprite_block.offsets = offsets
 		text_sprite_block.sprites = {}
+		text_sprite_block.last_sprite_index = 0
+		text_sprite_block.first_sprite_index = 0
 		return text_sprite_block
 	else
 		-- no existing TextSpriteBlock to accumulate into, drop this sprite
 		if prev == nil then
 			return nil
+		end
+
+		-- increment our counters (and index into sprites table)
+		prev.last_sprite_index = prev.last_sprite_index + 1
+		if prev.first_sprite_index == 0 then
+			prev.first_sprite_index = 1
+		end
+
+		print('adding sprite ' .. tostring(prev.last_sprite_index) .. ' to current length ' .. tostring(prev.last_sprite_index - prev.first_sprite_index + 1))
+
+		-- if we have more than max_display_rows with this new line then
+		-- remove the earliest sprite and increment the first_sprite_index
+		if (prev.last_sprite_index - prev.first_sprite_index + 1) > prev.max_display_rows then
+			prev.sprites[prev.first_sprite_index] = nil
+			prev.first_sprite_index = prev.first_sprite_index + 1
+			print('removed sprite, first_sprite_index now ' .. tostring(prev.first_sprite_index))
 		end
 
 		-- new text sprite line
@@ -36,7 +54,8 @@ function _M.parse_text_sprite_block(data, prev)
 		sprite.palette_data = string.sub(data, 7, 7 + sprite.num_colors * 3 - 1)
 		sprite.pixel_data = string.sub(data, 7 + sprite.num_colors * 3)
 
-		table.insert(prev.sprites, sprite)
+		-- add this sprite to the end
+		prev.sprites[prev.last_sprite_index] = sprite
 
 		return prev
 	end

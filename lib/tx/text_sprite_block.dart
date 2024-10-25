@@ -14,12 +14,12 @@ class TxTextSpriteBlock extends TxMsg {
   int get fontSize => _fontSize;
   final int _maxDisplayRows;
   int get maxDisplayRows => _maxDisplayRows;
-  final List<TxSprite> _lines = [];
-  List<TxSprite> get lines => _lines;
+  final List<TxSprite> _sprites = [];
+  List<TxSprite> get rasterizedSprites => _sprites;
 
   late final ui.Paragraph _paragraph;
   late final List<ui.LineMetrics> _lineMetrics;
-  List<ui.LineMetrics> get lineMetrics => _lineMetrics;
+  int get numLines => _lineMetrics.length;
 
   static img.PaletteUint8? monochromePal;
 
@@ -119,9 +119,6 @@ class TxTextSpriteBlock extends TxMsg {
 
       final int totalHeight = (bottomBoundary - topBoundary).toInt();
       final int topOffset = topBoundary.toInt();
-      print(topOffset);
-      print(totalHeight);
-
 
       final ui.Image image = await picture.toImage(_width, totalHeight);
 
@@ -133,7 +130,6 @@ class TxTextSpriteBlock extends TxMsg {
         final int tlX = line.left.toInt();
         final int tlY = (line.baseline - line.ascent).toInt();
         final int tlyShifted = tlY - topOffset;
-        print(tlY);
         int lineWidth = line.width.toInt();
         int lineHeight = (line.ascent + line.descent).toInt();
 
@@ -156,7 +152,7 @@ class TxTextSpriteBlock extends TxMsg {
           }
 
           // make a Sprite out of the line and add to the list
-          _lines.add(TxSprite(
+          _sprites.add(TxSprite(
               msgCode: _msgCode,
               width: lineWidth,
               height: lineHeight,
@@ -167,7 +163,7 @@ class TxTextSpriteBlock extends TxMsg {
         else {
           // zero-width line, a blank line in the text block
           // so we make a 1x1 px sprite in the void color
-          _lines.add(TxSprite(
+          _sprites.add(TxSprite(
               msgCode: _msgCode,
               width: 1,
               height: 1,
@@ -183,7 +179,7 @@ class TxTextSpriteBlock extends TxMsg {
   /// Convert TxTextSpriteBlock back to a single image for testing/verification
   /// startLine and endLine are inclusive
   Future<Uint8List> toPngBytes({required int startLine, required int endLine}) async {
-    if (_lines.isEmpty) {
+    if (_sprites.isEmpty) {
       throw Exception('_lines is empty: call rasterize() before toPngBytes()');
     }
 
@@ -198,7 +194,7 @@ class TxTextSpriteBlock extends TxMsg {
 
     // copy in each of the sprites
     for (int i = startLine; i <= endLine; i++) {
-      img.compositeImage(preview, lines[i].toImage(),
+      img.compositeImage(preview, rasterizedSprites[i].toImage(),
           dstY: (_lineMetrics[i].baseline - _lineMetrics[i].ascent - topOffset).toInt());
     }
 
@@ -208,7 +204,7 @@ class TxTextSpriteBlock extends TxMsg {
   /// Corresponding parser should be called from frame_app data handler
   @override
   Uint8List pack() {
-    if (_lines.isEmpty) {
+    if (_sprites.isEmpty) {
       throw Exception('_lines is empty: call rasterize() before pack()');
     }
 
@@ -235,7 +231,7 @@ class TxTextSpriteBlock extends TxMsg {
       widthMsb,
       widthLsb,
       _maxDisplayRows & 0xFF,
-      _lines.length & 0xFF,
+      _sprites.length & 0xFF,
       ...offsets
     ]);
   }
