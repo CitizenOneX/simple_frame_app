@@ -180,7 +180,7 @@ class TxTextSpriteBlock extends TxMsg {
   /// startLine and endLine are inclusive
   Future<Uint8List> toPngBytes({required int startLine, required int endLine}) async {
     if (_sprites.isEmpty) {
-      throw Exception('_lines is empty: call rasterize() before toPngBytes()');
+      throw Exception('_sprites is empty: call rasterize() before toPngBytes()');
     }
 
     // work out which range of lines we're drawing, and shift up by topOffset in Y
@@ -205,7 +205,7 @@ class TxTextSpriteBlock extends TxMsg {
   @override
   Uint8List pack() {
     if (_sprites.isEmpty) {
-      throw Exception('_lines is empty: call rasterize() before pack()');
+      throw Exception('_sprites is empty: call rasterize() before pack()');
     }
 
     int widthMsb = _width >> 8;
@@ -218,7 +218,6 @@ class TxTextSpriteBlock extends TxMsg {
       var lm = _lineMetrics[i];
       int xOffset = lm.left.toInt();
       int yOffset = (lm.baseline - lm.ascent).toInt();
-      print(yOffset);
       offsets[4 * i] = xOffset >> 8;
       offsets[4 * i + 1] = xOffset & 0xFF;
       offsets[4 * i + 2] = yOffset >> 8;
