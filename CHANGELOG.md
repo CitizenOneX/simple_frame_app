@@ -38,3 +38,7 @@
 ## 1.1.0
 
 * implemented `TxTextSpriteBlock` more fully to support multi-line text, including scrolling frameside when the number of lines sent exceeds maxDisplayRows. The call to `rasterize()` has been updated to require providing indices for lines to rasterize.
+
+## 1.1.1
+
+* removed extra logging statements in `text_sprite_block.lua`
