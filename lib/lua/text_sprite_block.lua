@@ -35,14 +35,11 @@ function _M.parse_text_sprite_block(data, prev)
 			prev.first_sprite_index = 1
 		end
 
-		print('adding sprite ' .. tostring(prev.last_sprite_index) .. ' to current length ' .. tostring(prev.last_sprite_index - prev.first_sprite_index + 1))
-
 		-- if we have more than max_display_rows with this new line then
 		-- remove the earliest sprite and increment the first_sprite_index
 		if (prev.last_sprite_index - prev.first_sprite_index + 1) > prev.max_display_rows then
 			prev.sprites[prev.first_sprite_index] = nil
 			prev.first_sprite_index = prev.first_sprite_index + 1
-			print('removed sprite, first_sprite_index now ' .. tostring(prev.first_sprite_index))
 		end
 
 		-- new text sprite line
