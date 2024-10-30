@@ -42,3 +42,7 @@
 ## 1.1.1
 
 * removed extra logging statements in `text_sprite_block.lua`
+
+## 1.2.0
+
+* Updated TxCameraSettings and camera.lua to support both autoexposure and manual exposure/gain photos
