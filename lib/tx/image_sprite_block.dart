@@ -16,13 +16,13 @@ class TxImageSpriteBlock extends TxMsg {
 
   /// intent for the Lua side to render the sprite lines as they are received,
   /// or wait until the whole image can be drawn
-  bool _progressiveRender;
+  final bool _progressiveRender;
 
   /// whether subsequent sprite lines after the first set can be sent to override the corresponding
   /// sprite lines from the original image, resulting in an updatable, dynamic image
   /// (whether progressively rendered, or not)
   /// As long as a new block header is not sent
-  bool _updatable;
+  final bool _updatable;
 
   /// After construction, an ImageSpriteBlock should be tested that it has a non-zero number of
   /// sprite lines to send, otherwise it should not be sent
