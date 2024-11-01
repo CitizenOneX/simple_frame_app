@@ -46,3 +46,7 @@
 ## 1.2.0
 
 * Updated TxCameraSettings and camera.lua to support both autoexposure and manual exposure/gain photos
+
+## 1.3.0
+
+* Added TxImageSpriteBlock for splitting an image into lines of TxSprite, allowing for progressive/incremental rendering. Also supports in-place updates of sprite lines for continuously updating images.
