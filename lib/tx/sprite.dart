@@ -5,10 +5,15 @@ import 'package:simple_frame_app/tx_msg.dart';
 
 class TxSprite extends TxMsg {
   late final int _width;
+  int get width => _width;
   late final int _height;
+  int get height => _height;
   late final int _numColors;
+  int get numColors => _numColors;
   late final Uint8List _paletteData;
+  Uint8List get paletteData => _paletteData;
   late final Uint8List _pixelData;
+  Uint8List get pixelData => _pixelData;
 
   /// Create a sprite with the specified size, palette data and pixel data, identified by the specified message code (the identifier used on the Lua side to label this sprite)
   /// width(Uint16), height(Uint16), bpp(Uint8), numColors(Uint8), palette (Uint8 r, Uint8 g, Uint8 b)*numColors, data (length: width x height bytes content: palette index)
