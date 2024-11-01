@@ -2,7 +2,7 @@
 _M = {}
 
 -- Parse the image sprite block message raw data. Unpack the header fields.
--- width(Uint16), height(Uint16), sprite_line_height(Uint16)
+-- width(Uint16), height(Uint16), sprite_line_height(Uint16), progressive_render(bool as Uint8), updatable(bool as Uint8)
 function _M.parse_image_sprite_block(data, prev)
 	if string.byte(data, 1) == 0xFF then
 		-- new block
@@ -10,6 +10,8 @@ function _M.parse_image_sprite_block(data, prev)
 		image_sprite_block.width = string.byte(data, 2) << 8 | string.byte(data, 3)
 		image_sprite_block.height = string.byte(data, 4) << 8 | string.byte(data, 5)
 		image_sprite_block.sprite_line_height = string.byte(data, 6) << 8 | string.byte(data, 7)
+		image_sprite_block.progressive_render = string.byte(data, 8) == 1
+		image_sprite_block.updatable = string.byte(data, 9) == 1
 		image_sprite_block.sprites = {}
 		image_sprite_block.total_sprites = (image_sprite_block.height + image_sprite_block.sprite_line_height - 1) // image_sprite_block.sprite_line_height
 		image_sprite_block.active_sprites = 0
@@ -25,7 +27,13 @@ function _M.parse_image_sprite_block(data, prev)
 		-- increment our counters (and index into sprites table)
 		prev.current_sprite_index = prev.current_sprite_index + 1
 		if prev.current_sprite_index > prev.total_sprites then
-			prev.current_sprite_index = 1
+			if prev.updatable then
+				-- image sprite block is getting updated, return to first sprite
+				prev.current_sprite_index = 1
+			else
+				-- not updatable, drop this sprite
+				return prev
+			end
 		end
 
 		-- we just accumulate up to total_sprites then stop

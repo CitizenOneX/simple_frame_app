@@ -14,6 +14,16 @@ class TxImageSpriteBlock extends TxMsg {
   final List<TxSprite> _spriteLines = [];
   List<TxSprite> get spriteLines => _spriteLines;
 
+  /// intent for the Lua side to render the sprite lines as they are received,
+  /// or wait until the whole image can be drawn
+  bool _progressiveRender;
+
+  /// whether subsequent sprite lines after the first set can be sent to override the corresponding
+  /// sprite lines from the original image, resulting in an updatable, dynamic image
+  /// (whether progressively rendered, or not)
+  /// As long as a new block header is not sent
+  bool _updatable;
+
   /// After construction, an ImageSpriteBlock should be tested that it has a non-zero number of
   /// sprite lines to send, otherwise it should not be sent
   bool get isEmpty => _spriteLines.isEmpty;
@@ -29,41 +39,41 @@ class TxImageSpriteBlock extends TxMsg {
   /// to place each line. By sending each line separately we can display them as they arrive, as well as reducing overall memory
   /// requirement (each concat() call is smaller).
   /// Sending an ImageSpriteBlock with no lines is not intended usage.
-  /// TODO flag for "display all at once or progressively"
-  /// TODO flag for "after receiving all the sprite lines, if another sprite line comes then start replacing again from the top"
-  /// That is, if the image is part of a stream of same-sized images, sending the sprite lines from a subsequent image
-  /// can be made to overwrite the lines from the prior image (as long as a new block header is not sent).
-  TxImageSpriteBlock(
-    {required super.msgCode,
+  TxImageSpriteBlock({
+    required super.msgCode,
     required TxSprite image,
-    required int spriteLineHeight})
-    : _image = image,
-      _spriteLineHeight = spriteLineHeight {
-        // process the full-sized sprite lines
-        for (int i = 0; i < image.height ~/ spriteLineHeight; i++) {
-          _spriteLines.add(
-            TxSprite(
-              msgCode: msgCode,
-              width: image.width,
-              height: spriteLineHeight,
-              numColors: image.numColors,
-              paletteData: image.paletteData,
-              pixelData: image.pixelData.buffer.asUint8List(i * spriteLineHeight * image.width, spriteLineHeight * image.width)));
-        }
+    required int spriteLineHeight,
+    bool progressiveRender = true,
+    bool updatable = true
+    }) : _image = image,
+         _spriteLineHeight = spriteLineHeight,
+         _progressiveRender = progressiveRender,
+         _updatable = updatable {
+    // process the full-sized sprite lines
+    for (int i = 0; i < image.height ~/ spriteLineHeight; i++) {
+      _spriteLines.add(
+        TxSprite(
+          msgCode: msgCode,
+          width: image.width,
+          height: spriteLineHeight,
+          numColors: image.numColors,
+          paletteData: image.paletteData,
+          pixelData: image.pixelData.buffer.asUint8List(i * spriteLineHeight * image.width, spriteLineHeight * image.width)));
+    }
 
-        // if there is some final, shorter sprite line, process it too
-        int finalHeight  = image.height % spriteLineHeight;
-        if (finalHeight > 0) {
-          _spriteLines.add(
-            TxSprite(
-              msgCode: msgCode,
-              width: image.width,
-              height: finalHeight,
-              numColors: image.numColors,
-              paletteData: image.paletteData,
-              pixelData: image.pixelData.buffer.asUint8List(_spriteLines.length * spriteLineHeight * image.width, finalHeight * image.width)));
-        }
-      }
+    // if there is some final, shorter sprite line, process it too
+    int finalHeight  = image.height % spriteLineHeight;
+    if (finalHeight > 0) {
+      _spriteLines.add(
+        TxSprite(
+          msgCode: msgCode,
+          width: image.width,
+          height: finalHeight,
+          numColors: image.numColors,
+          paletteData: image.paletteData,
+          pixelData: image.pixelData.buffer.asUint8List(_spriteLines.length * spriteLineHeight * image.width, finalHeight * image.width)));
+    }
+  }
 
   /// Convert TxImageSpriteBlock back to a single image for testing/verification
   /// startLine and endLine are inclusive
@@ -101,7 +111,7 @@ class TxImageSpriteBlock extends TxMsg {
     int spriteLineHeightMsb = spriteLineHeight >> 8;
     int spriteLineHeightLsb = spriteLineHeight & 0xFF;
 
-    // special marker for Block header 0xFF, width and height of the block, spriteLineHeight
+    // special marker for Block header 0xFF, width and height of the block, spriteLineHeight, progressive rendering flag, updatable flag
     return Uint8List.fromList([
       0xFF,
       widthMsb,
@@ -110,6 +120,8 @@ class TxImageSpriteBlock extends TxMsg {
       heightLsb,
       spriteLineHeightMsb,
       spriteLineHeightLsb,
+      _progressiveRender ? 1 : 0,
+      _updatable ? 1 : 0,
     ]);
   }
 }
