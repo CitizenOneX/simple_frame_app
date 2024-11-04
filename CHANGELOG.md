@@ -50,3 +50,7 @@
 ## 1.3.0
 
 * Added TxImageSpriteBlock for splitting an image into lines of TxSprite, allowing for progressive/incremental rendering. Also supports in-place updates of sprite lines for continuously updating images.
+
+## 1.4.0
+
+* Added RxIMU parser and corresponding frameside sender for streaming magnetometer (compass) and accelerometer data from Frame
