@@ -13,7 +13,9 @@ function _M.parse_image_sprite_block(data, prev)
 		image_sprite_block.progressive_render = string.byte(data, 8) == 1
 		image_sprite_block.updatable = string.byte(data, 9) == 1
 		image_sprite_block.sprites = {}
-		image_sprite_block.total_sprites = (image_sprite_block.height + image_sprite_block.sprite_line_height - 1) // image_sprite_block.sprite_line_height
+		-- WARNING: minifier stripped parentheses from the following line and introduced a bug so split division to separate line
+		local sprite_height_temp = image_sprite_block.height + image_sprite_block.sprite_line_height - 1
+		image_sprite_block.total_sprites = sprite_height_temp // image_sprite_block.sprite_line_height
 		image_sprite_block.active_sprites = 0
 		image_sprite_block.current_sprite_index = 0
 		return image_sprite_block
