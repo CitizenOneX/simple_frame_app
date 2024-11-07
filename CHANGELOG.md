@@ -54,3 +54,7 @@
 ## 1.4.0
 
 * Added RxIMU parser and corresponding frameside sender for streaming magnetometer (compass) and accelerometer data from Frame
+
+## 1.4.1
+
+* Tweaked Lua source file for image_sprite_block to prevent a bug introduced by the minifier stripping out necessary parentheses
