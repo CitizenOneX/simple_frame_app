@@ -58,3 +58,7 @@
 ## 1.4.1
 
 * Tweaked Lua source file for image_sprite_block to prevent a bug introduced by the minifier stripping out necessary parentheses
+
+## 1.5.0
+
+* Added simple moving average smoothing option for IMU data

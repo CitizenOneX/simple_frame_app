@@ -15,10 +15,11 @@ Flutter and Lua quickstart app scaffolding and standard library functions for Br
 * Send and display Sprites on Frame (from both pre-made image assets and also dynamically-sourced)
 * Send text for display on Frame (TxPlainText and TxTextSpriteBlock for Unicode/RTL)
 * Request and process JPG images from Frame camera (`image` package)
+* Request magnetometer and accelerometer stream (IMU)
 * Automatically loads custom Lua scripts onto Frame on app startup, deletes them on app exit
 * Automatically loads sprite assets into Frame memory on app startup
 * Framework for custom typed message sending and receiving (pack/parse standard and custom message types) that automatically handles messages larger than bluetooth MTU size
-* Library of standard frameside Lua scripts (for generic accumulation of message data, battery, camera, sprites, text)
+* Library of standard frameside Lua scripts (for generic accumulation of message data, battery, camera, sprites, text, IMU)
 * Conventions for the use of minified Lua scripts
 * Template for optional simple single-page phoneside Flutter app
 * Template for standard frameside Lua app
@@ -55,7 +56,7 @@ var takePhoto = TxCameraSettings(msgCode: 0x0d);
 await frame!.sendMessage(takePhoto);
 
 // synchronously await the image response encoded as a jpeg
-Uint8List imageData = await imageDataResponse(frame!.dataResponse, 50).first;
+Uint8List imageData = await RxPhoto(qualityLevel: 50).attach(frame!.dataResponse).first;
 
 // send a custom message and value to the Lua app running on Frame
 await frame!.sendMessage(TxCode(msgCode: 0x0e, value: 1));
