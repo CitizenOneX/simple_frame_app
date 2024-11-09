@@ -62,3 +62,7 @@
 ## 1.5.0
 
 * Added simple moving average smoothing option for IMU data
+
+## 1.5.1
+
+* Corrected 'GRAY' to 'GRAY' for plain_text display to match firmware
