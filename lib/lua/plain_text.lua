@@ -1,7 +1,7 @@
 -- Module to parse text strings sent from phoneside app as TxPlainText messages
 _M = {}
 
-local colors = {'VOID', 'WHITE', 'GRAY', 'RED', 'PINK', 'DARKBROWN','BROWN', 'ORANGE', 'YELLOW', 'DARKGREEN', 'GREEN', 'LIGHTGREEN', 'NIGHTBLUE', 'SEABLUE', 'SKYBLUE', 'CLOUDBLUE'}
+local colors = {'VOID', 'WHITE', 'GREY', 'RED', 'PINK', 'DARKBROWN','BROWN', 'ORANGE', 'YELLOW', 'DARKGREEN', 'GREEN', 'LIGHTGREEN', 'NIGHTBLUE', 'SEABLUE', 'SKYBLUE', 'CLOUDBLUE'}
 
 -- Parse the TxPlainText message raw data, which is a string
 function _M.parse_plain_text(data)
