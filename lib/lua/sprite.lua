@@ -14,4 +14,17 @@ function _M.parse_sprite(data)
 	return sprite
 end
 
+function _M.set_palette(num_colors, palette_data)
+	local colors = {'VOID', 'WHITE', 'GREY', 'RED', 'PINK', 'DARKBROWN','BROWN', 'ORANGE', 'YELLOW', 'DARKGREEN', 'GREEN', 'LIGHTGREEN', 'NIGHTBLUE', 'SEABLUE', 'SKYBLUE', 'CLOUDBLUE'}
+
+	-- we usually wouldn't want to reassign VOID, so the first entry should be black but we won't force it
+	for i=1,num_colors do
+		local col_offset = (i - 1) * 3
+		frame.display.assign_color(colors[i],
+			string.byte(palette_data, col_offset + 1),
+			string.byte(palette_data, col_offset + 2),
+			string.byte(palette_data, col_offset + 3))
+	end
+end
+
 return _M

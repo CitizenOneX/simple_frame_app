@@ -5,6 +5,13 @@ _M = {}
 -- width(Uint16), height(Uint16), sprite_line_height(Uint16), progressive_render(bool as Uint8), updatable(bool as Uint8)
 function _M.parse_image_sprite_block(data, prev)
 	if string.byte(data, 1) == 0xFF then
+		-- new block starting, zero out the old block to get memory back
+		if prev ~= nil then
+			for k, v in pairs(prev.sprites) do prev.sprites[k] = nil end
+			prev = nil
+			collectgarbage('collect')
+		end
+
 		-- new block
 		local image_sprite_block = {}
 		image_sprite_block.width = string.byte(data, 2) << 8 | string.byte(data, 3)
@@ -56,6 +63,19 @@ function _M.parse_image_sprite_block(data, prev)
 		prev.sprites[prev.current_sprite_index] = sprite
 
 		return prev
+	end
+end
+
+function _M.set_palette(num_colors, palette_data)
+	local colors = {'VOID', 'WHITE', 'GREY', 'RED', 'PINK', 'DARKBROWN','BROWN', 'ORANGE', 'YELLOW', 'DARKGREEN', 'GREEN', 'LIGHTGREEN', 'NIGHTBLUE', 'SEABLUE', 'SKYBLUE', 'CLOUDBLUE'}
+
+	-- we usually wouldn't want to reassign VOID, so the first entry should be black but we won't force it
+	for i=1,num_colors do
+		local col_offset = (i - 1) * 3
+		frame.display.assign_color(colors[i],
+			string.byte(palette_data, col_offset + 1),
+			string.byte(palette_data, col_offset + 2),
+			string.byte(palette_data, col_offset + 3))
 	end
 end
 
