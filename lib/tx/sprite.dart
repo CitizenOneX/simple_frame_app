@@ -1,7 +1,11 @@
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
+import 'package:logging/logging.dart';
 import 'package:simple_frame_app/tx_msg.dart';
+
+final _log = Logger("TxSprite");
 
 class TxSprite extends TxMsg {
   late final int _width;
@@ -30,9 +34,167 @@ class TxSprite extends TxMsg {
         _paletteData = paletteData,
         _pixelData = pixelData;
 
-  /// Create a sprite from a PNG
+  /// Create a TxSprite from any image bytes that can be decoded by img.decode()
+  /// If it's an indexed image, quantize down to 14 colors if larger
+  /// (plus black, white as palette entries 0 and 1.)
+  /// If it's an RGB image, also quantize to 14 colors (then prepend black and white)
+  /// Scale to 640x400 preserving aspect ratio for 1- or 2-bit images
+  /// Scale to ~128k pixels preserving aspect ratio for 4-bit images
+  /// TODO improve quantization - quality, speed
+  /// TODO map 100% alpha or black or darkest color in the palette (if 16 colors used) to VOID
+  /// Since neuralNet seems to give the darkest in entry 0 and the lightest in the last entry
+  /// We can probably just set 0 to black and swap palette entries 1 and 15 (and remap the pixels)
+  TxSprite.fromImageBytes({required super.msgCode, required Uint8List imageBytes}) {
+    var image = img.decodeImage(imageBytes);
+
+    if (image == null) throw Exception('Unable to decode image file');
+
+    if ((image.hasPalette && image.palette!.numColors > 16) || !image.hasPalette) {
+        _log.fine('quantizing image');
+        // note, even though we ask for only numberOfColors here, neuralNet gives us back a palette of 256
+        // with only the first numberOfColors populated, ordered by increasing luminance
+        image = img.quantize(image, numberOfColors: 14, method: img.QuantizeMethod.neuralNet, dither: img.DitherKernel.none);
+    }
+
+    if (image.width > 640 || image.height > 400) {
+      _log.fine('scaling down oversized image');
+
+      if (image.palette!.numColors <= 4) {
+        _log.fine('Low bit depth image, scale to 640x400');
+        // 1- or 2-bit images can take as much of 640x400 as needed, preserving aspect ratio
+        // use nearest interpolation, we can't use any interpolation that averages colors
+        image = img.copyResize(image,
+            width: 640,
+            height: 400,
+            maintainAspect: true,
+            interpolation: img.Interpolation.nearest);
+      }
+      else {
+        _log.fine('4-bit image, scale to max 128k pixels');
+        // 4-bit images need to be smaller or else we run out of memory. Limit to 64kb, or 128k pixels
+        int numSrcPixels = image.height * image.width;
+
+        if (numSrcPixels > 128000) {
+          double scaleFactor = sqrt(128000 / numSrcPixels);
+          _log.fine(() => 'scaling down by $scaleFactor');
+
+          image = img.copyResize(image,
+              width: (image.width * scaleFactor).toInt().clamp(1, 640),
+              height: (image.height * scaleFactor).toInt().clamp(1, 400),
+              maintainAspect: true,
+              interpolation: img.Interpolation.nearest);
+        }
+        else {
+          _log.fine('small 4-bit image, no need to scale down pixels, just max extent in height or width');
+          image = img.copyResize(image,
+              width: 640,
+              height: 400,
+              maintainAspect: true,
+              interpolation: img.Interpolation.nearest);
+        }
+      }
+    }
+
+    _width = image.width;
+    _height = image.height;
+    _pixelData = image.data!.toUint8List();
+    // use a temporary palette in case we need to expand it to add VOID at the start
+    Uint8List? initialPalette;
+
+    // we can process RGB or RGBA format palettes, but any others we just exclude here
+    if (image.palette!.numChannels == 3 || image.palette!.numChannels == 4) {
+      _log.fine('3 or 4 channels in palette');
+
+      if (image.palette!.numChannels == 3) {
+        initialPalette = image.palette!.toUint8List();
+      }
+      else if (image.palette!.numChannels == 4) {
+        // strip out the alpha channel from the palette
+        initialPalette = _extractRGB(image.palette!.toUint8List());
+      }
+
+      // Frame uses palette entry 0 for VOID.
+      // If we can fit another color, we can add VOID at the start and shift every pixel up by one.
+      // If we can't fit any more colors, for now just set 0 to black (otherwise the rest of the display
+      // will be lit)
+      // TODO in future we could:
+      // - find an alpha color from the palette (if it exists), and swap it with the color in 0
+      // - find black from the palette (if it exists), and swap it with the color in 0
+      // - find the darkest luminance color and swap it with the color in 0
+      if (image.palette!.numColors < 16) {
+        _log.fine('fewer than 16 colors');
+
+        // if the first color of the palette is not black/void, we need to
+        // insert another color (which may promote the image to 2-bit or 4-bit)
+        // but no need to if the palette already has black at the start
+        if (initialPalette![0] != 0 || initialPalette[1] != 0 || initialPalette[2] != 0) {
+          _numColors = image.palette!.numColors + 1;
+
+          _paletteData = Uint8List(initialPalette.length + 3);
+          _paletteData.setAll(3, initialPalette);
+          _log.fine(initialPalette);
+          _log.fine(_paletteData);
+
+          // update all the pixels to refer to the new palette index
+          for (int i=0; i<_pixelData.length; i++) {
+            _pixelData[i] += 1;
+          }
+        }
+        else {
+          // palette already has black at the start, just copy it over
+          _numColors = image.palette!.numColors;
+          _paletteData = initialPalette;
+        }
+      }
+      else {
+        _log.fine('16 or more colors');
+
+        if (image.palette!.numColors == 16) {
+          _log.fine('16 colors exactly, make sure 0 is set to black');
+          _numColors = image.palette!.numColors;
+          // can't fit any more colors, set entry 0 to black
+          _paletteData = initialPalette!;
+          _paletteData[0] = 0;
+          _paletteData[1] = 0;
+          _paletteData[2] = 0;
+          _log.fine(initialPalette);
+          _log.fine(_paletteData);
+        }
+        else {
+          _log.fine('more colors due to quantizer bug');
+          // There's a bug in the neuralNet quantizer that creates a palette of
+          // 256 entries but only the first 14 are populated, as we requested.
+          // so copy them over after setting the first two entries to black and white
+          _numColors = 16;
+          _paletteData = Uint8List(16*3);
+          _paletteData[0] = 0;
+          _paletteData[1] = 0;
+          _paletteData[2] = 0;
+          _paletteData[3] = 255;
+          _paletteData[4] = 255;
+          _paletteData[5] = 255;
+          _paletteData.setAll(6, initialPalette!.getRange(0, 14*3));
+          _log.fine(initialPalette.getRange(0, 16*3));
+          _log.fine(_paletteData);
+
+          // update all the pixels to refer to the new palette index
+          for (int i=0; i<_pixelData.length; i++) {
+            _pixelData[i] += 2;
+          }
+        }
+      }
+
+      _log.fine(() => 'Sprite: $_width x $_height, $_numColors cols, ${pack().length} bytes');
+    }
+    else {
+      throw Exception('Image colors must have 3 or 4 channels to be converted to a sprite');
+    }
+  }
+
+  /// Create a TxSprite from an indexed PNG
   /// Sprites should be PNGs with palettes of up to 2, 4, or 16 colors (1-, 2-, or 4-bit indexed palettes)
   /// Alpha channel (4th-RGBA), if present, is dropped before sending to Frame (RGB only, but color 0 is VOID)
+  /// Scale to 640x400 if larger, preserving aspect ratio
   TxSprite.fromPngBytes({required super.msgCode, required Uint8List pngBytes}) {
     var imgPng = img.PngDecoder().decode(pngBytes);
 
@@ -41,7 +203,7 @@ class TxSprite extends TxMsg {
         imgPng.palette!.numColors <= 16) {
       // resize the image if it's too big - we really shouldn't have to do this for project sprites, just user-picked images
       if (imgPng.width > 640 || imgPng.height > 400) {
-        // use nearest interpolation, we can't use any interpretation that averages colors
+        // use nearest interpolation, we can't use any interpolation that averages colors
         imgPng = img.copyResize(imgPng,
             width: 640,
             height: 400,
