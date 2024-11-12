@@ -63,7 +63,7 @@ function _M.update_app_data_accum(data)
             collectgarbage('collect')
             app_data_block[msg_flag] = table.concat(item.chunk_table)
             for k, v in pairs(item.chunk_table) do item.chunk_table[k] = nil end
-            collectgarbage()
+            collectgarbage('collect')
             item.size = 0
             item.recv_bytes = 0
             item.num_chunks = 0
