@@ -41,19 +41,29 @@ class TxSprite extends TxMsg {
   /// Scale to 640x400 preserving aspect ratio for 1- or 2-bit images
   /// Scale to ~128k pixels preserving aspect ratio for 4-bit images
   /// TODO improve quantization - quality, speed
-  /// TODO map 100% alpha or black or darkest color in the palette (if 16 colors used) to VOID
-  /// Since neuralNet seems to give the darkest in entry 0 and the lightest in the last entry
-  /// We can probably just set 0 to black and swap palette entries 1 and 15 (and remap the pixels)
+  /// If quantizing, since neuralNet seems to give the black in entry 0 and white in the last entry
+  /// We just leave 0 (black) and swap palette entries 1 and 15 (and remap those pixels)
   TxSprite.fromImageBytes({required super.msgCode, required Uint8List imageBytes}) {
     var image = img.decodeImage(imageBytes);
 
     if (image == null) throw Exception('Unable to decode image file');
 
+    // the number of colors in the image (after optional quantization), must be 16 or fewer
+    final int numColors;
+    bool quantized = false;
+
     if ((image.hasPalette && image.palette!.numColors > 16) || !image.hasPalette) {
-        _log.fine('quantizing image');
-        // note, even though we ask for only numberOfColors here, neuralNet gives us back a palette of 256
-        // with only the first numberOfColors populated, ordered by increasing luminance
-        image = img.quantize(image, numberOfColors: 14, method: img.QuantizeMethod.neuralNet, dither: img.DitherKernel.none);
+      _log.fine('quantizing image');
+      // note, even though we ask for only numberOfColors here, neuralNet gives us back a palette of 256
+      // with only the first numberOfColors populated, ordered by increasing luminance (TODO and always containing black, then colors, then white last)
+      // we'll trim that palette array down to 16*3 later
+      image = img.quantize(image, numberOfColors: 16, method: img.QuantizeMethod.neuralNet, dither: img.DitherKernel.none);
+      numColors = 16;
+      quantized = true;
+    }
+    else {
+      _log.fine('16 or fewer colors in an indexed image, no quantizing required');
+      numColors = image.palette!.numColors;
     }
 
     if (image.width > 640 || image.height > 400) {
@@ -86,6 +96,7 @@ class TxSprite extends TxMsg {
         }
         else {
           _log.fine('small 4-bit image, no need to scale down pixels, just max extent in height or width');
+          // TODO does this scale up if the image is smaller? It doesn't need to do this.
           image = img.copyResize(image,
               width: 640,
               height: 400,
@@ -102,92 +113,110 @@ class TxSprite extends TxMsg {
     Uint8List? initialPalette;
 
     // we can process RGB or RGBA format palettes, but any others we just exclude here
-    if (image.palette!.numChannels == 3 || image.palette!.numChannels == 4) {
-      _log.fine('3 or 4 channels in palette');
+    if (image.palette!.numChannels == 3) {
+      _log.fine('3-channel palette');
+      // take the sublist because neuralNet quantized images have the number of colors we want
+      // but packaged in a length 256 palette (a bug)
+      initialPalette = image.palette!.toUint8List().sublist(0, 3 * numColors);
+    }
+    else if (image.palette!.numChannels == 4) {
+      _log.fine('4-channel palette');
+      // strip out the alpha channel from the palette
+      // take the sublist because neuralNet quantized images have the number of colors we want
+      // but packaged in a length 256 palette (a bug)
+      initialPalette = _extractRGB(image.palette!.toUint8List().sublist(0, 4 * numColors));
+    }
+    else {
+      throw Exception('Image colors must have 3 or 4 channels to be converted to a sprite');
+    }
 
-      if (image.palette!.numChannels == 3) {
-        initialPalette = image.palette!.toUint8List();
-      }
-      else if (image.palette!.numChannels == 4) {
-        // strip out the alpha channel from the palette
-        initialPalette = _extractRGB(image.palette!.toUint8List());
-      }
+    // Frame uses palette entry 0 for VOID.
+    // If we can fit another color, we can add VOID at the start and shift every pixel up by one.
+    // If we can't fit any more colors, for now just set 0 to black (otherwise the rest of the display
+    // will be lit)
+    // We move the white palette index to 1 so that regular white text displays OK
+    // TODO in future we could:
+    // - find an alpha color from the palette (if it exists), and swap it with the color in 0
+    // - find black from the palette (if it exists), and swap it with the color in 0
+    // - find the darkest luminance color and swap it with the color in 0
+    // - neuralNet quantizer seems to set 0 to black and max color to white.
+    if (image.palette!.numColors < 16) {
+      _log.fine('fewer than 16 colors');
 
-      // Frame uses palette entry 0 for VOID.
-      // If we can fit another color, we can add VOID at the start and shift every pixel up by one.
-      // If we can't fit any more colors, for now just set 0 to black (otherwise the rest of the display
-      // will be lit)
-      // TODO in future we could:
-      // - find an alpha color from the palette (if it exists), and swap it with the color in 0
-      // - find black from the palette (if it exists), and swap it with the color in 0
-      // - find the darkest luminance color and swap it with the color in 0
-      if (image.palette!.numColors < 16) {
-        _log.fine('fewer than 16 colors');
+      // if the first RGB color of the palette is not black/void, we need to
+      // insert another color (which may promote the image to 2-bit or 4-bit)
+      // but no need to if the palette already has black at the start
+      if (initialPalette[0] != 0 || initialPalette[1] != 0 || initialPalette[2] != 0) {
+        // TODO consider checking for whether we can move/add white to the #1 slot without
+        // increasing the palette size to the next bitness
+        _log.fine('insert black at the front of the palette');
+        _numColors = image.palette!.numColors + 1;
 
-        // if the first color of the palette is not black/void, we need to
-        // insert another color (which may promote the image to 2-bit or 4-bit)
-        // but no need to if the palette already has black at the start
-        if (initialPalette![0] != 0 || initialPalette[1] != 0 || initialPalette[2] != 0) {
-          _numColors = image.palette!.numColors + 1;
+        _paletteData = Uint8List(initialPalette.length + 3);
+        _paletteData.setAll(3, initialPalette);
+        _log.fine(initialPalette);
+        _log.fine(_paletteData);
 
-          _paletteData = Uint8List(initialPalette.length + 3);
-          _paletteData.setAll(3, initialPalette);
-          _log.fine(initialPalette);
-          _log.fine(_paletteData);
-
-          // update all the pixels to refer to the new palette index
-          for (int i=0; i<_pixelData.length; i++) {
-            _pixelData[i] += 1;
-          }
-        }
-        else {
-          // palette already has black at the start, just copy it over
-          _numColors = image.palette!.numColors;
-          _paletteData = initialPalette;
+        // update all the pixels to refer to the new palette index
+        for (int i=0; i<_pixelData.length; i++) {
+          _pixelData[i] += 1;
         }
       }
       else {
-        _log.fine('16 or more colors');
+        // palette already has black at the start, just copy it over
+        _log.fine('black already at the start of the palette');
+        _numColors = image.palette!.numColors;
+        _paletteData = initialPalette;
+      }
+    }
+    else {
+      _log.fine('exactly 16 colors');
 
-        if (image.palette!.numColors == 16) {
-          _log.fine('16 colors exactly, make sure 0 is set to black');
-          _numColors = image.palette!.numColors;
-          // can't fit any more colors, set entry 0 to black
-          _paletteData = initialPalette!;
-          _paletteData[0] = 0;
-          _paletteData[1] = 0;
-          _paletteData[2] = 0;
-          _log.fine(initialPalette);
-          _log.fine(_paletteData);
-        }
-        else {
-          _log.fine('more colors due to quantizer bug');
-          // There's a bug in the neuralNet quantizer that creates a palette of
-          // 256 entries but only the first 14 are populated, as we requested.
-          // so copy them over after setting the first two entries to black and white
-          _numColors = 16;
-          _paletteData = Uint8List(16*3);
-          _paletteData[0] = 0;
-          _paletteData[1] = 0;
-          _paletteData[2] = 0;
-          _paletteData[3] = 255;
-          _paletteData[4] = 255;
-          _paletteData[5] = 255;
-          _paletteData.setAll(6, initialPalette!.getRange(0, 14*3));
-          _log.fine(initialPalette.getRange(0, 16*3));
-          _log.fine(_paletteData);
+      if (!quantized) {
+        // 16 colors in palette set by user's file, might not have black in slot 0
+        _log.fine('16 colors exactly, make sure 0 is set to black');
+        _numColors = image.palette!.numColors;
+        // can't fit any more colors, set entry 0 to black
+        _paletteData = initialPalette;
+        _paletteData[0] = 0;
+        _paletteData[1] = 0;
+        _paletteData[2] = 0;
+        _log.fine(initialPalette);
+        _log.fine(_paletteData);
+      }
+      else {
+        _log.fine('16 colors coming from quantizer');
 
-          // update all the pixels to refer to the new palette index
-          for (int i=0; i<_pixelData.length; i++) {
-            _pixelData[i] += 2;
+        _numColors = 16;
+        _paletteData = initialPalette;
+        _log.fine(initialPalette);
+        // black is already in #0 [0, 1, 2]
+
+        // swap color in #1 [3, 4, 5] with white, which is in #15 [45, 46, 47]
+        var swapR = _paletteData[3];
+        var swapG = _paletteData[4];
+        var swapB = _paletteData[5];
+        _paletteData[3] = 255;
+        _paletteData[4] = 255;
+        _paletteData[5] = 255;
+        _paletteData[45] = swapR;
+        _paletteData[46] = swapG;
+        _paletteData[47] = swapB;
+
+        _log.fine(_paletteData);
+
+        // update all the pixels to swap the palette index for white and the color that was in #1
+        for (int i=0; i<_pixelData.length; i++) {
+          if (_pixelData[i] == 1) {
+            _pixelData[i] = 15;
+          }
+          else if (_pixelData[i] == 15) {
+            _pixelData[i] = 1;
           }
         }
       }
 
       _log.fine(() => 'Sprite: $_width x $_height, $_numColors cols, ${pack().length} bytes');
-    }
-    else {
-      throw Exception('Image colors must have 3 or 4 channels to be converted to a sprite');
     }
   }
 
@@ -221,7 +250,8 @@ class TxSprite extends TxMsg {
           imgPng.palette!.numChannels == 4) {
         if (imgPng.palette!.numChannels == 3) {
           _paletteData = imgPng.palette!.toUint8List();
-        } else if (imgPng.palette!.numChannels == 4) {
+        }
+        else if (imgPng.palette!.numChannels == 4) {
           // strip out the alpha channel from the palette
           _paletteData = _extractRGB(imgPng.palette!.toUint8List());
         }
@@ -240,6 +270,7 @@ class TxSprite extends TxMsg {
   /// Strips the Alpha byte out of a list of RGBA colors
   /// Takes a Uint8List of length 4n made of RGBA bytes, and takes the first 3 bytes out of each 4 (RGB)
   Uint8List _extractRGB(Uint8List rgba) {
+    _log.fine('extracting RGB from RGBA');
     // The output list will have 3/4 the length of the input list
     Uint8List rgb = Uint8List((rgba.length * 3) ~/ 4);
 
