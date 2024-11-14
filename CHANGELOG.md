@@ -66,3 +66,7 @@
 ## 1.5.1
 
 * Corrected 'GRAY' to 'GRAY' for plain_text display to match firmware
+
+## 1.6.0
+
+* Added rudimentary support for TxSprite.fromImageBytes() to load arbitrary PNG or JPG files for display on Frame (previously limited to indexed PNG files of 2, 4, or 16 colors only)
