@@ -70,3 +70,7 @@
 ## 1.6.0
 
 * Added rudimentary support for TxSprite.fromImageBytes() to load arbitrary PNG or JPG files for display on Frame (previously limited to indexed PNG files of 2, 4, or 16 colors only)
+
+## 1.6.1
+
+* Fixed bitmask bug causing analog_gain_limit and manual_analog_gain to be incorrectly parsed in Lua
