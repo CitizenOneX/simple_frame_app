@@ -22,11 +22,11 @@ function _M.parse_camera_settings(data)
 		camera_settings.exposure = string.byte(data, 5) / 255.0
 		camera_settings.exposure_speed = string.byte(data, 6) / 255.0
 		camera_settings.shutter_limit = string.byte(data, 7) << 8 | string.byte(data, 8) & 0x3FFF
-		camera_settings.analog_gain_limit = string.byte(data, 9) & 0xF8
+		camera_settings.analog_gain_limit = string.byte(data, 9) & 0xFF
 		camera_settings.white_balance_speed = string.byte(data, 10) / 255.0
 	else
 		camera_settings.manual_shutter = string.byte(data, 11) << 8 | string.byte(data, 12) & 0x3FFF
-		camera_settings.manual_analog_gain = string.byte(data, 13) & 0xF8
+		camera_settings.manual_analog_gain = string.byte(data, 13) & 0xFF
 		camera_settings.manual_red_gain = string.byte(data, 14) << 8 | string.byte(data, 15) & 0x3FF
 		camera_settings.manual_green_gain = string.byte(data, 16) << 8 | string.byte(data, 17) & 0x3FF
 		camera_settings.manual_blue_gain = string.byte(data, 18) << 8 | string.byte(data, 19) & 0x3FF
