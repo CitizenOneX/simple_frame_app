@@ -74,3 +74,8 @@
 ## 1.6.1
 
 * Fixed bitmask bug causing analog_gain_limit and manual_analog_gain to be incorrectly parsed in Lua
+
+## 1.7.0
+
+* Fixed scan/connect/reconnect code to be able to be called synchronously, and properly `await`ed.
+* Added helper startup method to try scanning, connecting, starting Frame app and optionally running phoneside `run()` method, suitable for use in some apps from `initState()`
