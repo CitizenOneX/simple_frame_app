@@ -42,6 +42,10 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
     currentState = ApplicationState.scanning;
     if (mounted) setState(() {});
 
+    // create a Future we can manually complete when Frame is found
+    // or timeout occurred, but either way we can await scanForFrame synchronously
+    final completer = Completer<void>();
+
     await BrilliantBluetooth.requestPermission();
 
     await _scanStream?.cancel();
@@ -71,14 +75,27 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
         default:
           _log.fine('Unexpected state on scan timeout: $currentState');
           if (mounted) setState(() {});
+
+        // signal that scanForFrame can now finish
+        // if it hasn't already completed via the listen() path below
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
       }
-    }).listen((device) {
+    }).listen((device) async {
       _log.fine('Frame found, connecting');
       currentState = ApplicationState.connecting;
       if (mounted) setState(() {});
 
-      connectToScannedFrame(device);
+      await connectToScannedFrame(device);
+
+      // signal that scanForFrame can now finish
+      completer.complete();
     });
+
+    // wait until the listen(onData) or the onTimeout is completed
+    // so we can return synchronously
+    await completer.future;
   }
 
   Future<void> connectToScannedFrame(BrilliantScannedDevice device) async {
@@ -92,7 +109,7 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
       await _refreshDeviceStateSubs();
 
       // refresh subscriptions to String rx and Data rx
-      _refreshRxSubs();
+      await _refreshRxSubs();
 
       try {
         // terminate the main.lua (if currently running) so we can run our lua code
@@ -113,7 +130,7 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
         _log.fine('Error while sending break signal: $e');
         if (mounted) setState(() {});
 
-        disconnectFrame();
+        await disconnectFrame();
       }
     } catch (e) {
       currentState = ApplicationState.disconnected;
@@ -137,7 +154,7 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
         await _refreshDeviceStateSubs();
 
         // refresh subscriptions to String rx and Data rx
-        _refreshRxSubs();
+        await _refreshRxSubs();
 
         try {
           // terminate the main.lua (if currently running) so we can run our lua code
@@ -158,7 +175,7 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
           _log.fine('Error while sending break signal: $e');
           if (mounted) setState(() {});
 
-          disconnectFrame();
+          await disconnectFrame();
         }
       } catch (e) {
         currentState = ApplicationState.disconnected;
@@ -174,9 +191,9 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
 
   Future<void> scanOrReconnectFrame() async {
     if (frame != null) {
-      return reconnectFrame();
+      await reconnectFrame();
     } else {
-      return scanForFrame();
+      await scanForFrame();
     }
   }
 
@@ -234,8 +251,8 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
     });
   }
 
-  void _refreshRxSubs() {
-    _rxAppData?.cancel();
+  Future<void> _refreshRxSubs() async {
+    await _rxAppData?.cancel();
     _rxAppData = frame!.dataResponse.listen((data) {
       if (data.length > 1) {
         // at this stage simple frame app only handles battery level message 0x0c
@@ -249,7 +266,7 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
     });
 
     // subscribe one listener to the stdout stream
-    _rxStdOut?.cancel();
+    await _rxStdOut?.cancel();
     _rxStdOut = frame!.stringResponse.listen((data) {});
   }
 
@@ -500,6 +517,40 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
     await frame!.sendString(
         'frame.display.text("Loading...",1,1) frame.display.show()',
         awaitResponse: false);
+  }
+
+  /// Suitable for inclusion in initState or other startup code,
+  /// this function will attempt connection, start app (loading Lua, sprites)
+  /// and optionally call run() (unawaited)
+  /// to save a few connect/start/(run) steps
+  Future<void> tryScanAndConnectAndStart({required bool andRun}) async {
+    if (currentState == ApplicationState.disconnected) {
+
+      _log.fine('calling scanOrReconnectFrame');
+      await scanOrReconnectFrame();
+
+      if (currentState == ApplicationState.connected) {
+
+        _log.fine('calling startApplication');
+        await startApplication();
+
+        if (currentState == ApplicationState.ready && andRun) {
+          // don't await this one for run() functions that keep running a main loop, so initState() can complete
+          _log.fine('calling run');
+          run();
+        }
+        else {
+          _log.fine('not ready or andRun is false - not calling run');
+        }
+      }
+      else {
+        // connection didn't succeed, decide what you want to do if the app starts and the user doesn't tap Frame to wake it up
+        _log.fine('not connected - finishing start attempt');
+      }
+    }
+    else {
+      _log.fine('not in disconnected state - not attempting scan/connect');
+    }
   }
 
   /// the SimpleFrameApp subclass implements application-specific code
