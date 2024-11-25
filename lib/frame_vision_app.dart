@@ -419,6 +419,7 @@ abstract class ImageMetadata extends StatelessWidget {
   const ImageMetadata({super.key});
 }
 
+// ignore: must_be_immutable
 class AutoExpImageMetadata extends ImageMetadata {
   final int quality;
   final int exposureRuns;
@@ -449,6 +450,7 @@ class AutoExpImageMetadata extends ImageMetadata {
   }
 }
 
+// ignore: must_be_immutable
 class ManualExpImageMetadata extends ImageMetadata {
   final int quality;
   final int shutter;
