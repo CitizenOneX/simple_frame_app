@@ -79,3 +79,7 @@
 
 * Fixed scan/connect/reconnect code to be able to be called synchronously, and properly `await`ed.
 * Added helper startup method to try scanning, connecting, starting Frame app and optionally running phoneside `run()` method, suitable for use in some apps from `initState()`
+
+## 1.8.0
+
+* Added `frame_vision_app` mixin as a specialized form of simple_frame_app for computer vision applications. Separate templates are now provided in `templates/` for `simple_frame_app` and `frame_vision_app` apps. Frame Vision Apps automatically listen for taps which can be used to capture photos, and provide a hook for a vision processing pipeline when photos are captured. Auto and Manual exposure camera settings are supported and a settings drawer widget is provided.
