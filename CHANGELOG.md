@@ -83,3 +83,7 @@
 ## 1.8.0
 
 * Added `frame_vision_app` mixin as a specialized form of simple_frame_app for computer vision applications. Separate templates are now provided in `templates/` for `simple_frame_app` and `frame_vision_app` apps. Frame Vision Apps automatically listen for taps which can be used to capture photos, and provide a hook for a vision processing pipeline when photos are captured. Auto and Manual exposure camera settings are supported and a settings drawer widget is provided.
+
+## 2.0.0
+
+* Renamed printInstructions(), tapHandler() to standardized names of onRun(), onTap(), and added onCancel() abstract function to allow implementing app class to perform app-specific initialization and cleanup
