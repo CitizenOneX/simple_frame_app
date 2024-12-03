@@ -41,7 +41,7 @@ class MainAppState extends State<MainApp> with SimpleFrameAppState, FrameVisionA
   }
 
   @override
-  Future<void> printInstructions() async {
+  Future<void> onRun() async {
     await frame!.sendMessage(
       TxPlainText(
         msgCode: 0x0a,
@@ -51,7 +51,12 @@ class MainAppState extends State<MainApp> with SimpleFrameAppState, FrameVisionA
   }
 
   @override
-  Future<void> tapHandler(int taps) async {
+  Future<void> onCancel() async {
+    // app-specific cleanup
+  }
+
+  @override
+  Future<void> onTap(int taps) async {
     switch (taps) {
       case 1:
         // next

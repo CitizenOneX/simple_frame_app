@@ -42,6 +42,19 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
   // tap subscription
   StreamSubscription<int>? _tapSubs;
 
+  /// abstract method that is called at the end of run() to give the implementing class
+  /// a chance to print some instructions (or perform some other final setup)
+  /// after the tap handler is hooked up
+  Future<void> onRun();
+
+  /// abstract method that is called at the start of cancel() to give the implementing class
+  /// a chance to perform some cleanup
+  Future<void> onCancel();
+
+  /// abstract method that must be implemented by the class mixing in frame_vision_app
+  /// to capture a photo and perform some action on a 1-, 2-, 3-, n-tap etc.
+  Future<void> onTap(int taps);
+
   /// Implements simple_frame_app run() by listening for taps
   /// and handing off to a tapHandler() function
   /// in the class that mixes in frame_vision_app.
@@ -59,27 +72,18 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
       .listen((taps) async {
         _log.fine(() => 'taps: $taps');
         // call the tap handler in the implementing class
-        tapHandler(taps);
+        onTap(taps);
       }
     );
 
     // let Frame know to subscribe for taps and send them to us
     await frame!.sendMessage(TxCode(msgCode: 0x10, value: 1));
 
-    // prompt the user to begin tapping
-    await printInstructions();
+    // prompt the user to begin tapping or other app-specific setup
+    await onRun();
 
     // run() completes but we stay in ApplicationState.running because the tap listener is active
   }
-
-  /// abstract method that is called at the end of run() to give the implementing class
-  /// a chance to print some instructions (or perform some other final setup)
-  /// after the tap handler is hooked up
-  Future<void> printInstructions();
-
-  /// abstract method that must be implemented by the class mixing in frame_vision_app
-  /// to capture a photo and perform some action on a 1-, 2-, 3-, n-tap etc.
-  Future<void> tapHandler(int taps);
 
   /// request a photo from Frame
   Future<(Uint8List, ImageMetadata)> capture() async {
@@ -156,6 +160,9 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
     setState(() {
       currentState = ApplicationState.canceling;
     });
+
+    // perform app-specific cleanup
+    await onCancel();
 
     // let Frame know to stop sending taps
     await frame!.sendMessage(TxCode(msgCode: 0x10, value: 0));
