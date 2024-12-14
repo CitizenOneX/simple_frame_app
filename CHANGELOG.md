@@ -1,3 +1,7 @@
+## 2.0.1
+
+* Changed camera_capture_and_send() to remove all delays between sends on Frameside, just retry on bluetooth send failure. Overall performance improvement, but retry counts of 10, 50, 100+ occur with some packets suggesting further improvement is possible.
+
 ## 2.0.0
 
 * Renamed printInstructions(), tapHandler() to standardized names of onRun(), onTap(), and added onCancel() abstract function to allow implementing app class to perform app-specific initialization and cleanup
