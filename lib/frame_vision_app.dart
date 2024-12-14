@@ -144,7 +144,7 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
         meta.elapsedTimeMs = _stopwatch.elapsedMilliseconds;
       }
 
-      _log.fine(() => 'Image file size in bytes: ${imageData.length}, elapsedMs: ${_stopwatch.elapsedMilliseconds}');
+      _log.fine(() => 'Image file size in bytes: ${imageData.length}, elapsedMs: ${_stopwatch.elapsedMilliseconds}, ${((imageData.length / 1024.0) / (_stopwatch.elapsedMilliseconds / 1000.0)).toStringAsFixed(2)} kB/s');
 
       return (imageData, meta);
 

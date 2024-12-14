@@ -35,6 +35,31 @@ function _M.parse_camera_settings(data)
 	return camera_settings
 end
 
+-- send data with retries and no sleeps, bail after 2 seconds
+function send_data(data)
+	local sent = false
+	local retry_count = 0
+	-- 2 second time limit for this packet else bail out
+	local try_until = frame.time.utc() + 2
+
+	while frame.time.utc() < try_until do
+		if pcall(frame.bluetooth.send, data) then
+			sent = true
+			break
+		else
+			retry_count = retry_count + 1
+		end
+	end
+
+	--if retry_count > 0 then
+	--	print('retries: ' .. tostring(retry_count))
+	--end
+
+	if not sent then
+		error('Error sending photo data')
+	end
+end
+
 function _M.camera_capture_and_send(args)
 	local quality = args.quality or 50
 
@@ -62,10 +87,10 @@ function _M.camera_capture_and_send(args)
 		frame.camera.set_shutter(manual_shutter)
 		frame.camera.set_gain(manual_analog_gain)
 		frame.camera.set_white_balance(manual_red_gain, manual_green_gain, manual_blue_gain)
-	end
 
-	-- TODO remove after testing if manual shutter or gain needs a delay to take effect on the first capture after a setting change
-	frame.sleep(0.1)
+		-- TODO remove after testing if manual shutter or gain needs a delay to take effect on the first capture after a setting change
+		frame.sleep(0.1)
+	end
 
 	frame.camera.capture { quality_factor = quality }
 	-- wait until the capture is finished and the image is ready before continuing
@@ -73,20 +98,16 @@ function _M.camera_capture_and_send(args)
 		frame.sleep(0.05)
 	end
 
-	local bytes_sent = 0
-
 	local data = ''
 
 	while true do
-        data = frame.camera.read_raw(frame.bluetooth.max_length() - 4)
+        data = frame.camera.read_raw(frame.bluetooth.max_length() - 1)
+
         if (data ~= nil) then
-            pcall(frame.bluetooth.send, string.char(IMAGE_MSG) .. data)
-            bytes_sent = bytes_sent + string.len(data)
-            frame.sleep(0.0125)
+			send_data(string.char(IMAGE_MSG) .. data)
 		else
-            pcall(frame.bluetooth.send, string.char(IMAGE_FINAL_MSG))
-            frame.sleep(0.0125)
-            break
+			send_data(string.char(IMAGE_FINAL_MSG))
+			break
 		end
 	end
 end
