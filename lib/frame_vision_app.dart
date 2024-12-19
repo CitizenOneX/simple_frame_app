@@ -18,7 +18,7 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
 
   // camera settings
   int qualityIndex = 0;
-  final List<double> qualityValues = [10, 25, 50, 100];
+  final List<double> qualityValues = [10, 25, 50];
   bool _isAutoExposure = true;
 
   // autoexposure/gain parameters
