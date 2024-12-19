@@ -1,3 +1,7 @@
+## 2.0.2
+
+* Removed unusable quality 100 from camera settings drawer
+
 ## 2.0.1
 
 * Changed camera_capture_and_send() to remove all delays between sends on Frameside, just retry on bluetooth send failure. Overall performance improvement, but retry counts of 10, 50, 100+ occur with some packets suggesting further improvement is possible.
