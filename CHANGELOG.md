@@ -1,3 +1,7 @@
+## 2.0.3
+
+* Changed default invalid plain_text color VOID/0, changed to WHITE/1
+
 ## 2.0.2
 
 * Removed unusable quality 100 from camera settings drawer
