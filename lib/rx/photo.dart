@@ -1,12 +1,17 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:image/image.dart' as image_lib;
 import 'package:logging/logging.dart';
 import 'package:simple_frame_app/src/jpeg_headers.dart';
 
 final _log = Logger("RxPhoto");
 
 /// Returns a photo as a JPEG image from Frame.
+/// Note: The camera sensor on Frame is rotated 90 degrees clockwise, so raw images are rotated, but by default
+/// RxPhoto will correct this by rotating -90 degrees.
+/// If you want to save the cost of copyRotate here you can specify upright=false in the constructor
+/// since some ML packages allow for specifying the orientation of the image when passing it in.
 /// Pairs with frame.camera.read_raw(), that is, jpeg header and footer
 /// are not sent from Frame - only the content, using non-final and final message types
 /// Jpeg header and footer are added in here on the client, so a quality level
@@ -17,6 +22,7 @@ class RxPhoto {
   final int nonFinalChunkFlag;
   final int finalChunkFlag;
   final int qualityLevel;
+  final bool upright;
   StreamController<Uint8List>? _controller;
 
   /// qualityLevel must be valid (10, 25, 50, 100)
@@ -24,6 +30,7 @@ class RxPhoto {
     this.nonFinalChunkFlag = 0x07,
     this.finalChunkFlag = 0x08,
     this.qualityLevel = 10,
+    this.upright = true,
   });
 
   /// Attach this RxPhoto to the Frame's dataResponse characteristic stream.
@@ -68,8 +75,21 @@ class RxPhoto {
           // add the jpeg footer bytes (2 bytes)
           imageData.addAll(jpegFooter);
 
-          // When full image data is received, emit it and clear the buffer
-          _controller!.add(Uint8List.fromList(imageData));
+          // When full image data is received,
+          // rotate the image counter-clockwise 90 degrees to make it upright
+          // unless requested otherwise (to save processing)
+          if (upright) {
+            image_lib.Image? im = image_lib.decodeJpg(Uint8List.fromList(imageData));
+            im = image_lib.copyRotate(im!, angle: 270);
+            // emit the rotated jpeg bytes
+            _controller!.add(image_lib.encodeJpg(im));
+          }
+          else {
+            // emit the original rotation jpeg bytes
+            _controller!.add(Uint8List.fromList(imageData));
+          }
+
+          // clear the buffer
           imageData.clear();
           rawOffset = 0;
 
@@ -89,5 +109,4 @@ class RxPhoto {
 
     return _controller!.stream;
   }
-
 }
