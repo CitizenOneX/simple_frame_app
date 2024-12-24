@@ -1,3 +1,7 @@
+## 3.0.0
+
+* Changed RxPhoto to rotate back to upright by default. Specify `upright: false` in the constructor to save a few cycles if you don't need it
+
 ## 2.0.3
 
 * Changed default invalid plain_text color VOID/0, changed to WHITE/1
