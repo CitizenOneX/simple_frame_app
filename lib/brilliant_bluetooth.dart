@@ -312,8 +312,6 @@ class BrilliantDevice {
 
       // send the chunk
       await sendDataRaw(packetToSend);
-      // FIXME just seeing if a flow rate issue is causing Frame to miss packets
-      await Future.delayed(const Duration(milliseconds: 50));
 
       bytesRemaining = payload.length - sentBytes;
       _log.finer(() => 'Bytes remaining: $bytesRemaining');
