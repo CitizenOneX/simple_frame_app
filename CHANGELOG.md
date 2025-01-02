@@ -1,3 +1,7 @@
+## 3.2.0
+
+* Made `batteryLevel` available from `simple_frame_app` to implementing apps
+
 ## 3.1.0
 
 * Removed 50ms delay that was introduced between packet sends to verify reliability, uploads should be faster
