@@ -25,11 +25,15 @@ enum ApplicationState {
 final _log = Logger("SFA");
 
 mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
+
+  ApplicationState currentState = ApplicationState.disconnected;
+
   // Frame to Phone flags
   static const batteryStatusFlag = 0x0c;
 
-  ApplicationState currentState = ApplicationState.disconnected;
   int? _batt;
+  // make battery level available to implementing apps
+  int get batteryLevel => _batt ?? 0;
 
   // Use BrilliantBluetooth for communications with Frame
   BrilliantDevice? frame;
