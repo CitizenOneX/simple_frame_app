@@ -1,1 +1,1 @@
-_M={}function _M.parse_code(a)local b={}b.value=string.byte(a,1)return b end;return _M
+local _M={}function _M.parse_code(a)local b={}b.value=string.byte(a,1)return b end;return _M

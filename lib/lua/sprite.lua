@@ -1,5 +1,5 @@
 -- Module to parse Sprites sent from phoneside app as TxSprite messages
-_M = {}
+local _M = {}
 
 -- Parse the sprite message raw data. Unpack the header fields.
 -- width(Uint16), height(Uint16), bpp(Uint8), numColors(Uint8), palette (Uint8 r, Uint8 g, Uint8 b)*numColors, data (length width x height x bpp/8)

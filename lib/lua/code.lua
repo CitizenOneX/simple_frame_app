@@ -1,5 +1,5 @@
 -- Module to parse message codes sent from phoneside app as TxCode messages
-_M = {}
+local _M = {}
 
 -- Parse the TxCode message raw data, which is a single byte
 function _M.parse_code(data)

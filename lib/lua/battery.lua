@@ -1,5 +1,5 @@
 -- Module handling periodic battery level reports on a standard message code
-_M = {}
+local _M = {}
 
 -- Frame to phone flags
 local BATTERY_MSG = 0x0c

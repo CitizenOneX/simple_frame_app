@@ -1,5 +1,5 @@
 -- Module to parse text strings sent from phoneside app as TxPlainText messages
-_M = {}
+local _M = {}
 
 local colors = {'VOID', 'WHITE', 'GREY', 'RED', 'PINK', 'DARKBROWN','BROWN', 'ORANGE', 'YELLOW', 'DARKGREEN', 'GREEN', 'LIGHTGREEN', 'NIGHTBLUE', 'SEABLUE', 'SKYBLUE', 'CLOUDBLUE'}
 

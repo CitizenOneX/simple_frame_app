@@ -1,7 +1,7 @@
 -- Module containing generic data handling code.
 -- Messages with a specific message code are accumulated, concatenated,
 -- and parsed into an app_data table item
-_M = {}
+local _M = {}
 
 -- accumulates chunks of input message into this table
 local app_data_accum = {}

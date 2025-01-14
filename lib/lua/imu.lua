@@ -1,5 +1,5 @@
 -- Module handling raw IMU Data (accelerometer, magnetometer)
-_M = {}
+local _M = {}
 
 -- Frame to phone flags
 local IMU_DATA_MSG = 0x0A

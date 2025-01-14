@@ -1,5 +1,5 @@
 -- Module to parse Sprites sent from phoneside app as TxTextSpriteBlock messages
-_M = {}
+local _M = {}
 
 -- Parse the text sprite block message raw data. Unpack the header fields.
 -- width(Uint16), max_display_rows(Uint8), lines(Uint8), [x_offset (Uint16), y_offset (Uint16)] * lines

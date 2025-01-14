@@ -1,5 +1,5 @@
 -- Module to parse Sprites sent from phoneside app as TxImageSpriteBlock messages
-_M = {}
+local _M = {}
 
 -- Parse the image sprite block message raw data. Unpack the header fields.
 -- width(Uint16), height(Uint16), sprite_line_height(Uint16), progressive_render(bool as Uint8), updatable(bool as Uint8)
