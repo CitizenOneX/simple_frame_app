@@ -91,8 +91,10 @@ function _M.parse_capture_settings(data)
 	local settings = {}
 	-- quality and metering mode are indices into arrays of values (0-based phoneside; 1-based in Lua)
 	settings.quality = quality_values[string.byte(data, 1) + 1]
-	settings.resolution = (string.byte(data, 2) << 8 | string.byte(data, 3)) * 2
-	settings.pan = (string.byte(data, 4) << 8 | string.byte(data, 5)) - 140
+	local half_res = string.byte(data, 2) << 8 | string.byte(data, 3)
+	settings.resolution = half_res * 2
+	local pan_shifted = string.byte(data, 4) << 8 | string.byte(data, 5)
+	settings.pan = pan_shifted - 140
 	settings.raw = string.byte(data, 6) > 0
 
 	return settings
