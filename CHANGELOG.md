@@ -1,3 +1,7 @@
+## 4.0.1
+
+* Modified `camera.lua` to split lines that were affected by a bug in the lua minifier. Resolution and Pan values were being affected.
+
 ## 4.0.0
 
 * Updated Frame camera API to match firmware version v25.008.1013 (multiple resolutions, pan, changed quality levels)
