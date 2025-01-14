@@ -1,3 +1,8 @@
+## 4.0.0
+
+* Updated Frame camera API to match firmware version v25.008.1013 (multiple resolutions, pan, changed quality levels)
+* The default Camera settings Drawer gives resolution options from 256-720 rather than 100-720 because low resolutions appeared to cause issues with autoexposure.
+
 ## 3.2.0
 
 * Made `batteryLevel` available from `simple_frame_app` to implementing apps
