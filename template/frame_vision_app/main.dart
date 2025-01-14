@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -83,12 +82,9 @@ class MainAppState extends State<MainApp> with SimpleFrameAppState, FrameVisionA
     var meta = photo.$2;
 
     try {
-      // NOTE: Frame camera is rotated 90 degrees clockwise, so if we need to make it upright for image processing.
+      // NOTE: Frame camera is rotated 90 degrees clockwise, so by default RxPhoto makes it upright (`img.copyRotate()`) for image processing.
       // Some processing packages e.g. ML Kit allow us to pass in a rotation parameter
-      // but if we need to bake in the correct rotation we can do it like so:
-      // import 'package:image/image.dart' as image_lib;
-      // image_lib.Image? im = image_lib.decodeJpg(imageData);
-      // im = image_lib.copyRotate(im, angle: 270);
+      // To save processing we can set `upright=false` when we construct/initialize our main FrameVisionApp class and handle it manually.
 
       // update Widget UI
       // For the widget we rotate it upon display with a transform, not changing the source image
@@ -127,15 +123,9 @@ class MainAppState extends State<MainApp> with SimpleFrameAppState, FrameVisionA
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
-                  Transform(
-                    alignment: Alignment.center,
-                    // images are rotated 90 degrees clockwise from the Frame
-                    // so reverse that for display
-                    transform: Matrix4.rotationZ(-pi*0.5),
-                    child: _image,
-                  ),
+                  _image ?? Container(),
                   const Divider(),
-                  if (_imageMeta != null) _imageMeta!,
+                  if (_imageMeta != null) ImageMetadataWidget(meta: _imageMeta!),
                 ],
               )
             ),

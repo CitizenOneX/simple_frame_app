@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as image_lib;
 import 'package:logging/logging.dart';
-import 'package:simple_frame_app/src/jpeg_headers.dart';
 
 final _log = Logger("RxPhoto");
 
@@ -21,35 +20,61 @@ class RxPhoto {
   // Frame to Phone flags
   final int nonFinalChunkFlag;
   final int finalChunkFlag;
-  final int qualityLevel;
+
+  /// Whether a raw image (without 623-byte jpeg header) will be returned from Frame, hence the corresponding header should be added
+  /// Note that the first request for an image with a given resolution and quality level MUST be a complete image so the jpeg header can be saved
+  /// and used for subsequent raw images of the same resolution and quality level
+  final bool isRaw;
+
+  /// The quality level of the jpeg image to be returned ['VERY_LOW', 'LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH']
+  final String qualityLevel;
+
+  /// The resolution of the (square) raw image to be returned from Frame
+  /// Must be an even number between 100 and 720 inclusive
+  final int resolution;
+
+  /// Whether to rotate the image 90 degrees counter-clockwise to make it upright before returning it
   final bool upright;
+
   StreamController<Uint8List>? _controller;
 
-  /// qualityLevel must be valid (10, 25, 50, 100)
+  /// A map of jpeg headers for each quality level which we fill as we receive the first image of each quality level/resolution
+  /// Key format is 'qualityLevel_resolution' e.g. 'VERY_LOW_512'
+  static final Map<String, Uint8List> jpegHeaderMap = {};
+  static bool hasJpegHeader(String qualityLevel, int resolution) => jpegHeaderMap.containsKey('${qualityLevel}_$resolution');
+
   RxPhoto({
     this.nonFinalChunkFlag = 0x07,
     this.finalChunkFlag = 0x08,
-    this.qualityLevel = 10,
     this.upright = true,
+    this.isRaw = false,
+    required this.qualityLevel,
+    required this.resolution,
   });
 
   /// Attach this RxPhoto to the Frame's dataResponse characteristic stream.
+  /// If `isRaw` is true, then qualityLevel and resolution must be specified and match the raw image requested from Frame
+  /// so that the correct jpeg header can be prepended.
   Stream<Uint8List> attach(Stream<List<int>> dataResponse) {
     // TODO check for illegal state - attach() already called on this RxPhoto etc?
     // might be possible though after a clean close(), do I want to prevent it?
-
-    // qualityLevel must be valid (10, 25, 50, 100)
-    if (!jpegHeaderMap.containsKey(qualityLevel)) {
-      throw Exception(
-          'Invalid quality level for jpeg: $qualityLevel - must be one of: ${jpegHeaderMap.keys}');
-    }
 
     // the image data as a list of bytes that accumulates with each packet
     List<int> imageData = List.empty(growable: true);
     int rawOffset = 0;
 
-    // add the jpeg header bytes for this quality level (623 bytes)
-    imageData.addAll(jpegHeaderMap[qualityLevel]!);
+    // if isRaw is true, a jpeg header must be prepended to the raw image data
+    if (isRaw) {
+      // fetch the jpeg header for this quality level and resolution
+      String key = '${qualityLevel}_$resolution';
+
+      if (!jpegHeaderMap.containsKey(key)) {
+        throw Exception('No jpeg header found for quality level $qualityLevel and resolution $resolution - request full jpeg once before requesting raw');
+      }
+
+      // add the jpeg header bytes for this quality level (623 bytes)
+      imageData.addAll(jpegHeaderMap[key]!);
+    }
 
     // the subscription to the underlying data stream
     StreamSubscription<List<int>>? dataResponseSubs;
@@ -67,26 +92,34 @@ class RxPhoto {
           imageData += data.sublist(1);
           rawOffset += data.length - 1;
         }
-        // the last chunk has a first byte of 8 so stop after this
+        // the last chunk has a first byte of finalChunkFlag so stop after this
         else if (data[0] == finalChunkFlag) {
           imageData += data.sublist(1);
           rawOffset += data.length - 1;
 
-          // add the jpeg footer bytes (2 bytes)
-          imageData.addAll(jpegFooter);
+          Uint8List finalImageBytes = Uint8List.fromList(imageData);
+
+          // if this image is a full jpeg, save the jpeg header for this quality level and resolution
+          // so that it can be prepended to raw images of the same quality level and resolution
+          if (!isRaw) {
+            String key = '${qualityLevel}_$resolution';
+            if (!jpegHeaderMap.containsKey(key)) {
+              jpegHeaderMap[key] = finalImageBytes.sublist(0, 623);
+            }
+          }
 
           // When full image data is received,
           // rotate the image counter-clockwise 90 degrees to make it upright
           // unless requested otherwise (to save processing)
           if (upright) {
-            image_lib.Image? im = image_lib.decodeJpg(Uint8List.fromList(imageData));
+            image_lib.Image? im = image_lib.decodeJpg(finalImageBytes);
             im = image_lib.copyRotate(im!, angle: 270);
             // emit the rotated jpeg bytes
             _controller!.add(image_lib.encodeJpg(im));
           }
           else {
             // emit the original rotation jpeg bytes
-            _controller!.add(Uint8List.fromList(imageData));
+            _controller!.add(finalImageBytes);
           }
 
           // clear the buffer

@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:simple_frame_app/rx/photo.dart';
 import 'package:simple_frame_app/rx/tap.dart';
-import 'package:simple_frame_app/tx/camera_settings.dart';
+import 'package:simple_frame_app/tx/capture_settings.dart';
+import 'package:simple_frame_app/tx/manual_exp_settings.dart';
+import 'package:simple_frame_app/tx/auto_exp_settings.dart';
 import 'package:simple_frame_app/simple_frame_app.dart';
 import 'package:simple_frame_app/tx/code.dart';
 import 'package:simple_frame_app/tx/plain_text.dart';
@@ -17,19 +19,20 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
   final Stopwatch _stopwatch = Stopwatch();
 
   // camera settings
-  int qualityIndex = 0;
-  final List<double> qualityValues = [10, 25, 50];
+  int qualityIndex = 4;
+  final List<String> qualityValues = ['VERY_LOW', 'LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH'];
+  int resolution = 512;
+  int pan = 0;
+  bool upright = true;
   bool _isAutoExposure = true;
 
   // autoexposure/gain parameters
   int meteringIndex = 2;
   final List<String> meteringValues = ['SPOT', 'CENTER_WEIGHTED', 'AVERAGE'];
-  int autoExpGainTimes = 2; // val >= 0; number of times auto exposure and gain algorithm will be run (every autoExpInterval ms)
-  int autoExpInterval = 100; // 0<= val <= 255; sleep time between runs of the autoexposure algorithm
   double exposure = 0.18; // 0.0 <= val <= 1.0
   double exposureSpeed = 0.5;  // 0.0 <= val <= 1.0
-  int shutterLimit = 16383; // 4 < val < 16383
-  int analogGainLimit = 1;     // 0 (1?) <= val <= 248
+  int shutterLimit = 800; // 4 < val < 16383
+  int analogGainLimit = 248;     // 0 (1?) <= val <= 248
   double whiteBalanceSpeed = 0.5;  // 0.0 <= val <= 1.0
 
   // manual exposure/gain parameters
@@ -85,53 +88,92 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
     // run() completes but we stay in ApplicationState.running because the tap listener is active
   }
 
+  Future<void> updateAutoExpSettings() async {
+    await frame!.sendMessage(TxAutoExpSettings(
+      msgCode: 0x0e,
+      meteringIndex: meteringIndex,
+      exposure: exposure,
+      exposureSpeed: exposureSpeed,
+      shutterLimit: shutterLimit,
+      analogGainLimit: analogGainLimit,
+      whiteBalanceSpeed: whiteBalanceSpeed,
+    ));
+  }
+
+  Future<void> updateManualExpSettings() async {
+    await frame!.sendMessage(TxManualExpSettings(
+      msgCode: 0x0f,
+      manualShutter: manualShutter,
+      manualAnalogGain: manualAnalogGain,
+      manualRedGain: manualRedGain,
+      manualGreenGain: manualGreenGain,
+      manualBlueGain: manualBlueGain,
+    ));
+  }
+
+  Future<void> sendExposureSettings() async {
+    if (_isAutoExposure) {
+      await updateAutoExpSettings();
+    }
+    else {
+      await updateManualExpSettings();
+    }
+  }
+
   /// request a photo from Frame
   Future<(Uint8List, ImageMetadata)> capture() async {
     try {
       // save a snapshot of the image metadata (camera settings) to show under the image
       ImageMetadata meta;
 
+      // freeze the quality, resolution and pan for this capture
+      var currQualIndex = qualityIndex;
+      var currRes = resolution;
+      var currPan = pan;
+
       if (_isAutoExposure) {
-        meta = AutoExpImageMetadata(qualityValues[qualityIndex].toInt(), autoExpGainTimes, autoExpInterval, meteringValues[meteringIndex], exposure, exposureSpeed, shutterLimit, analogGainLimit, whiteBalanceSpeed);
+        meta = AutoExpImageMetadata(
+            quality: qualityValues[currQualIndex],
+            resolution: currRes,
+            pan: currPan,
+            metering: meteringValues[meteringIndex],
+            exposure: exposure,
+            exposureSpeed: exposureSpeed,
+            shutterLimit: shutterLimit,
+            analogGainLimit: analogGainLimit,
+            whiteBalanceSpeed: whiteBalanceSpeed);
       }
       else {
-        meta = ManualExpImageMetadata(qualityValues[qualityIndex].toInt(), manualShutter, manualAnalogGain, manualRedGain, manualGreenGain, manualBlueGain);
+        meta = ManualExpImageMetadata(
+            quality: qualityValues[currQualIndex],
+            resolution: currRes,
+            pan: currPan,
+            shutter: manualShutter,
+            analogGain: manualAnalogGain,
+            redGain: manualRedGain,
+            greenGain: manualGreenGain,
+            blueGain: manualBlueGain);
       }
 
-      // send the lua command to request a photo from the Frame based on the current settings
+      // if we've saved the header from a previous photo, we can request the raw data without the header
+      bool requestRaw = RxPhoto.hasJpegHeader(qualityValues[currQualIndex], currRes);
+
       _stopwatch.reset();
       _stopwatch.start();
-      // Send the respective settings for autoexposure or manual
-      if (_isAutoExposure) {
-        await frame!.sendMessage(TxCameraSettings(
-          msgCode: 0x0d,
-          qualityIndex: qualityIndex,
-          autoExpGainTimes: autoExpGainTimes,
-          autoExpInterval: autoExpInterval,
-          meteringIndex: meteringIndex,
-          exposure: exposure,
-          exposureSpeed: exposureSpeed,
-          shutterLimit: shutterLimit,
-          analogGainLimit: analogGainLimit,
-          whiteBalanceSpeed: whiteBalanceSpeed,
-        ));
-      }
-      else {
-        await frame!.sendMessage(TxCameraSettings(
-          msgCode: 0x0d,
-          qualityIndex: qualityIndex,
-          autoExpGainTimes: 0,
-          manualShutter: manualShutter,
-          manualAnalogGain: manualAnalogGain,
-          manualRedGain: manualRedGain,
-          manualGreenGain: manualGreenGain,
-          manualBlueGain: manualBlueGain,
-        ));
-      }
-      // synchronously await the image response
-      Uint8List imageData = await RxPhoto(qualityLevel: qualityValues[qualityIndex].toInt()).attach(frame!.dataResponse).first;
 
-      // received a whole-image Uint8List with jpeg header and footer included
+      // send the lua command to request a photo from the Frame based on the current settings
+      await frame!.sendMessage(TxCaptureSettings(
+        msgCode: 0x0d,
+        resolution: currRes,
+        qualityIndex: currQualIndex,
+        pan: currPan,
+        raw: requestRaw,
+      ));
+
+      // synchronously await the image response (and add jpeg header if necessary)
+      Uint8List imageData = await RxPhoto(qualityLevel: qualityValues[currQualIndex], resolution: currRes, isRaw: requestRaw, upright: upright).attach(frame!.dataResponse).first;
+
+      // received a whole-image Uint8List with jpeg header included
       _stopwatch.stop();
 
       // add the size and elapsed time to the image metadata widget
@@ -177,260 +219,287 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
 
   Drawer getCameraDrawer() {
     return Drawer(
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: <Widget>[
-              const DrawerHeader(
-                decoration: BoxDecoration(
-                  color: Colors.blue,
-                ),
-                child: Text('Camera Settings',
-                  style: TextStyle(color: Colors.white, fontSize: 24),
-                  ),
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: <Widget>[
+          const DrawerHeader(
+            decoration: BoxDecoration(
+              color: Colors.blue,
+            ),
+            child: Text('Camera Settings',
+              style: TextStyle(color: Colors.white, fontSize: 24),
               ),
-              ListTile(
-                title: const Text('Quality'),
-                subtitle: Slider(
-                  value: qualityIndex.toDouble(),
-                  min: 0,
-                  max: qualityValues.length - 1,
-                  divisions: qualityValues.length - 1,
-                  label: qualityValues[qualityIndex].toString(),
-                  onChanged: (value) {
-                    setState(() {
-                      qualityIndex = value.toInt();
-                    });
-                  },
-                ),
-              ),
-              SwitchListTile(
-                title: const Text('Auto Exposure/Gain'),
-                value: _isAutoExposure,
-                onChanged: (bool value) {
+          ),
+          ListTile(
+            title: const Text('Quality'),
+            subtitle: Slider(
+              value: qualityIndex.toDouble(),
+              min: 0,
+              max: qualityValues.length - 1,
+              divisions: qualityValues.length - 1,
+              label: qualityValues[qualityIndex],
+              onChanged: (value) {
+                setState(() {
+                  qualityIndex = value.toInt();
+                });
+              },
+            ),
+          ),
+          ListTile(
+            title: const Text('Resolution'),
+            subtitle: Slider(
+              value: resolution.toDouble(),
+              min: 256,
+              max: 720,
+              divisions: (720 - 256) ~/ 16, // even numbers only
+              label: resolution.toString(),
+              onChanged: (value) {
+                setState(() {
+                  resolution = value.toInt();
+                });
+              },
+            ),
+          ),
+          ListTile(
+            title: const Text('Pan'),
+            subtitle: Slider(
+              value: pan.toDouble(),
+              min: -140,
+              max: 140,
+              divisions: 280,
+              label: pan.toString(),
+              onChanged: (value) {
+                setState(() {
+                  pan = value.toInt();
+                });
+              },
+            ),
+          ),
+          SwitchListTile(
+            title: const Text('Auto Exposure/Gain'),
+            value: _isAutoExposure,
+            onChanged: (bool value) async {
+              setState(() {
+                _isAutoExposure = value;
+              });
+            },
+            subtitle: Text(_isAutoExposure ? 'Auto' : 'Manual'),
+          ),
+          if (_isAutoExposure) ...[
+            // Widgets visible in Auto mode
+            ListTile(
+              title: const Text('Metering'),
+              subtitle: DropdownButton<int>(
+                value: meteringIndex,
+                onChanged: (int? newValue) async {
                   setState(() {
-                    _isAutoExposure = value;
+                    meteringIndex = newValue!;
                   });
                 },
-                subtitle: Text(_isAutoExposure ? 'Auto' : 'Manual'),
+                items: meteringValues
+                    .map<DropdownMenuItem<int>>((String value) {
+                  return DropdownMenuItem<int>(
+                    value: meteringValues.indexOf(value),
+                    child: Text(value),
+                  );
+                }).toList(),
               ),
-              if (_isAutoExposure) ...[
-                // Widgets visible in Auto mode
-                ListTile(
-                  title: const Text('Auto Exposure/Gain Runs'),
-                  subtitle: Slider(
-                    value: autoExpGainTimes.toDouble(),
-                    min: 1,
-                    max: 30,
-                    divisions: 29,
-                    label: autoExpGainTimes.toInt().toString(),
-                    onChanged: (value) {
-                      setState(() {
-                        autoExpGainTimes = value.toInt();
-                      });
-                    },
-                  ),
-                ),
-                ListTile(
-                  title: const Text('Auto Exposure Interval (ms)'),
-                  subtitle: Slider(
-                    value: autoExpInterval.toDouble(),
-                    min: 0,
-                    max: 255,
-                    divisions: 255,
-                    label: autoExpInterval.toInt().toString(),
-                    onChanged: (value) {
-                      setState(() {
-                        autoExpInterval = value.toInt();
-                      });
-                    },
-                  ),
-                ),
-                ListTile(
-                  title: const Text('Metering'),
-                  subtitle: DropdownButton<int>(
-                    value: meteringIndex,
-                    onChanged: (int? newValue) {
-                      setState(() {
-                        meteringIndex = newValue!;
-                      });
-                    },
-                    items: meteringValues
-                        .map<DropdownMenuItem<int>>((String value) {
-                      return DropdownMenuItem<int>(
-                        value: meteringValues.indexOf(value),
-                        child: Text(value),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                ListTile(
-                  title: const Text('Exposure'),
-                  subtitle: Slider(
-                    value: exposure,
-                    min: 0,
-                    max: 1,
-                    divisions: 20,
-                    label: exposure.toString(),
-                    onChanged: (value) {
-                      setState(() {
-                        exposure = value;
-                      });
-                    },
-                  ),
-                ),
-                ListTile(
-                  title: const Text('Exposure Speed'),
-                  subtitle: Slider(
-                    value: exposureSpeed,
-                    min: 0,
-                    max: 1,
-                    divisions: 20,
-                    label: exposureSpeed.toString(),
-                    onChanged: (value) {
-                      setState(() {
-                        exposureSpeed = value;
-                      });
-                    },
-                  ),
-                ),
-                ListTile(
-                  title: const Text('Shutter Limit'),
-                  subtitle: Slider(
-                    value: shutterLimit.toDouble(),
-                    min: 4,
-                    max: 16383,
-                    divisions: 10,
-                    label: shutterLimit.toStringAsFixed(0),
-                    onChanged: (value) {
-                      setState(() {
-                        shutterLimit = value.toInt();
-                      });
-                    },
-                  ),
-                ),
-                ListTile(
-                  title: const Text('Analog Gain Limit'),
-                  subtitle: Slider(
-                    value: analogGainLimit.toDouble(),
-                    min: 0,
-                    max: 248,
-                    divisions: 8,
-                    label: analogGainLimit.toStringAsFixed(0),
-                    onChanged: (value) {
-                      setState(() {
-                        analogGainLimit = value.toInt();
-                      });
-                    },
-                  ),
-                ),
-                ListTile(
-                  title: const Text('White Balance Speed'),
-                  subtitle: Slider(
-                    value: whiteBalanceSpeed,
-                    min: 0,
-                    max: 1,
-                    divisions: 20,
-                    label: whiteBalanceSpeed.toString(),
-                    onChanged: (value) {
-                      setState(() {
-                        whiteBalanceSpeed = value;
-                      });
-                    },
-                  ),
-                ),
-              ] else ...[
-                // Widgets visible in Manual mode
-                ListTile(
-                  title: const Text('Manual Shutter'),
-                  subtitle: Slider(
-                    value: manualShutter.toDouble(),
-                    min: 4,
-                    max: 16383,
-                    divisions: 100,
-                    label: manualShutter.toStringAsFixed(0),
-                    onChanged: (value) {
-                      setState(() {
-                        manualShutter = value.toInt();
-                      });
-                    },
-                  ),
-                ),
-                ListTile(
-                  title: const Text('Manual Analog Gain'),
-                  subtitle: Slider(
-                    value: manualAnalogGain.toDouble(),
-                    min: 0,
-                    max: 248,
-                    divisions: 50,
-                    label: manualAnalogGain.toStringAsFixed(0),
-                    onChanged: (value) {
-                      setState(() {
-                        manualAnalogGain = value.toInt();
-                      });
-                    },
-                  ),
-                ),
-                ListTile(
-                  title: const Text('Red Gain'),
-                  subtitle: Slider(
-                    value: manualRedGain.toDouble(),
-                    min: 0,
-                    max: 1023,
-                    divisions: 100,
-                    label: manualRedGain.toStringAsFixed(0),
-                    onChanged: (value) {
-                      setState(() {
-                        manualRedGain = value.toInt();
-                      });
-                    },
-                  ),
-                ),
-                ListTile(
-                  title: const Text('Green Gain'),
-                  subtitle: Slider(
-                    value: manualGreenGain.toDouble(),
-                    min: 0,
-                    max: 1023,
-                    divisions: 100,
-                    label: manualGreenGain.toStringAsFixed(0),
-                    onChanged: (value) {
-                      setState(() {
-                        manualGreenGain = value.toInt();
-                      });
-                    },
-                  ),
-                ),
-                ListTile(
-                  title: const Text('Blue Gain'),
-                  subtitle: Slider(
-                    value: manualBlueGain.toDouble(),
-                    min: 0,
-                    max: 1023,
-                    divisions: 100,
-                    label: manualBlueGain.toStringAsFixed(0),
-                    onChanged: (value) {
-                      setState(() {
-                        manualBlueGain = value.toInt();
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
+            ),
+            ListTile(
+              title: const Text('Exposure'),
+              subtitle: Slider(
+                value: exposure,
+                min: 0,
+                max: 1,
+                divisions: 20,
+                label: exposure.toString(),
+                onChanged: (value) {
+                  setState(() {
+                    exposure = value;
+                  });
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('Exposure Speed'),
+              subtitle: Slider(
+                value: exposureSpeed,
+                min: 0,
+                max: 1,
+                divisions: 20,
+                label: exposureSpeed.toString(),
+                onChanged: (value) {
+                  setState(() {
+                    exposureSpeed = value;
+                  });
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('Shutter Limit'),
+              subtitle: Slider(
+                value: shutterLimit.toDouble(),
+                min: 4,
+                max: 16383,
+                divisions: 10,
+                label: shutterLimit.toStringAsFixed(0),
+                onChanged: (value) {
+                  setState(() {
+                    shutterLimit = value.toInt();
+                  });
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('Analog Gain Limit'),
+              subtitle: Slider(
+                value: analogGainLimit.toDouble(),
+                min: 0,
+                max: 248,
+                divisions: 8,
+                label: analogGainLimit.toStringAsFixed(0),
+                onChanged: (value) {
+                  setState(() {
+                    analogGainLimit = value.toInt();
+                  });
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('White Balance Speed'),
+              subtitle: Slider(
+                value: whiteBalanceSpeed,
+                min: 0,
+                max: 1,
+                divisions: 20,
+                label: whiteBalanceSpeed.toString(),
+                onChanged: (value) {
+                  setState(() {
+                    whiteBalanceSpeed = value;
+                  });
+                },
+              ),
+            ),
+          ] else ...[
+            // Widgets visible in Manual mode
+            ListTile(
+              title: const Text('Manual Shutter'),
+              subtitle: Slider(
+                value: manualShutter.toDouble(),
+                min: 4,
+                max: 16383,
+                divisions: 100,
+                label: manualShutter.toStringAsFixed(0),
+                onChanged: (value) {
+                  setState(() {
+                    manualShutter = value.toInt();
+                  });
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('Manual Analog Gain'),
+              subtitle: Slider(
+                value: manualAnalogGain.toDouble(),
+                min: 0,
+                max: 248,
+                divisions: 50,
+                label: manualAnalogGain.toStringAsFixed(0),
+                onChanged: (value) {
+                  setState(() {
+                    manualAnalogGain = value.toInt();
+                  });
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('Red Gain'),
+              subtitle: Slider(
+                value: manualRedGain.toDouble(),
+                min: 0,
+                max: 1023,
+                divisions: 100,
+                label: manualRedGain.toStringAsFixed(0),
+                onChanged: (value) {
+                  setState(() {
+                    manualRedGain = value.toInt();
+                  });
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('Green Gain'),
+              subtitle: Slider(
+                value: manualGreenGain.toDouble(),
+                min: 0,
+                max: 1023,
+                divisions: 100,
+                label: manualGreenGain.toStringAsFixed(0),
+                onChanged: (value) {
+                  setState(() {
+                    manualGreenGain = value.toInt();
+                  });
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('Blue Gain'),
+              subtitle: Slider(
+                value: manualBlueGain.toDouble(),
+                min: 0,
+                max: 1023,
+                divisions: 100,
+                label: manualBlueGain.toStringAsFixed(0),
+                onChanged: (value) {
+                  setState(() {
+                    manualBlueGain = value.toInt();
+                  });
+                },
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 
-abstract class ImageMetadata extends StatelessWidget {
-  const ImageMetadata({super.key});
+class ImageMetadataWidget extends StatelessWidget {
+  final ImageMetadata meta;
+
+  const ImageMetadataWidget({super.key, required this.meta});
+
+  @override
+  Widget build(BuildContext context) {
+    List<String> metaList = meta.toMetaDataList();
+    List<Widget> columns = [];
+
+    for (int i = 0; i < metaList.length; i++) {
+      columns.add(Text(metaList[i]));
+
+      if (i<metaList.length-1) {
+        columns.add(const Spacer());
+      }
+    }
+    return Row(
+      children: columns,
+    );
+  }
 }
 
-// ignore: must_be_immutable
+abstract class ImageMetadata {
+  final String quality;
+  final int resolution;
+  final int pan;
+  int size = 0;
+  int elapsedTimeMs = 0;
+
+  ImageMetadata({required this.quality, required this.resolution, required this.pan});
+
+  List<String> toMetaDataList();
+}
+
 class AutoExpImageMetadata extends ImageMetadata {
-  final int quality;
-  final int exposureRuns;
-  final int exposureInterval;
   final String metering;
   final double exposure;
   final double exposureSpeed;
@@ -438,49 +507,60 @@ class AutoExpImageMetadata extends ImageMetadata {
   final int analogGainLimit;
   final double whiteBalanceSpeed;
 
-  AutoExpImageMetadata(this.quality, this.exposureRuns, this.exposureInterval, this.metering, this.exposure, this.exposureSpeed, this.shutterLimit, this.analogGainLimit, this.whiteBalanceSpeed, {super.key});
-
-  late int size;
-  late int elapsedTimeMs;
+  AutoExpImageMetadata(
+      {required super.quality,
+      required super.resolution,
+      required super.pan,
+      required this.metering,
+      required this.exposure,
+      required this.exposureSpeed,
+      required this.shutterLimit,
+      required this.analogGainLimit,
+      required this.whiteBalanceSpeed});
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text('Quality: $quality\nExposureRuns: $exposureRuns\nExpInterval: $exposureInterval\nMetering: $metering'),
-        const Spacer(),
-        Text('\nExposure: $exposure\nExposureSpeed: $exposureSpeed\nShutterLim: $shutterLimit\nAnalogGainLim: $analogGainLimit'),
-        const Spacer(),
-        Text('\nWBSpeed: $whiteBalanceSpeed\nSize: ${(size/1024).toStringAsFixed(1)} kb\nTime: $elapsedTimeMs ms'),
-      ],
-    );
+  List<String> toMetaDataList() {
+    return [
+        'Quality: $quality\nResolution: $resolution\nPan: $pan\nMetering: $metering',
+        'Exposure: $exposure\nExposureSpeed: $exposureSpeed\nShutterLim: $shutterLimit\nAnalogGainLim: $analogGainLimit',
+        'WBSpeed: $whiteBalanceSpeed\nSize: ${((size)/1024).toStringAsFixed(1)} kb\nTime: $elapsedTimeMs ms',
+      ];
+  }
+
+  @override
+  String toString() {
+    return toMetaDataList().join('\n');
   }
 }
 
-// ignore: must_be_immutable
 class ManualExpImageMetadata extends ImageMetadata {
-  final int quality;
   final int shutter;
   final int analogGain;
   final int redGain;
   final int greenGain;
   final int blueGain;
 
-  ManualExpImageMetadata(this.quality, this.shutter, this.analogGain, this.redGain, this.greenGain, this.blueGain, {super.key});
-
-  late int size;
-  late int elapsedTimeMs;
+  ManualExpImageMetadata(
+      {required super.quality,
+      required super.resolution,
+      required super.pan,
+      required this.shutter,
+      required this.analogGain,
+      required this.redGain,
+      required this.greenGain,
+      required this.blueGain});
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text('Quality: $quality\nShutter: $shutter\nAnalogGain: $analogGain'),
-        const Spacer(),
-        Text('RedGain: $redGain\nGreenGain: $greenGain\nBlueGain: $blueGain'),
-        const Spacer(),
-        Text('Size: ${(size/1024).toStringAsFixed(1)} kb\nTime: $elapsedTimeMs ms'),
-      ],
-    );
+  List<String> toMetaDataList() {
+    return [
+        'Quality: $quality\nResolution: $resolution\nPan: $pan\nShutter: $shutter',
+        'AnalogGain: $analogGain\nRedGain: $redGain\nGreenGain: $greenGain\nBlueGain: $blueGain',
+        'Size: ${(size/1024).toStringAsFixed(1)} kb\nTime: $elapsedTimeMs ms',
+      ];
+  }
+
+  @override
+  String toString() {
+    return toMetaDataList().join('\n');
   }
 }

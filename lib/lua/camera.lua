@@ -1,38 +1,101 @@
 -- Module to encapsulate taking and sending photos as simple frame app messages
-_M = {}
+local _M = {}
 
 -- Frame to phone flags
 local IMAGE_MSG = 0x07
 local IMAGE_FINAL_MSG = 0x08
 
--- parse the camera_settings message from the host into a table we can use with the camera_capture_and_send function
-function _M.parse_camera_settings(data)
-	local quality_values = {10, 25, 50, 100}
-	local metering_values = {'SPOT', 'CENTER_WEIGHTED', 'AVERAGE'}
+-- local state to capture the stateful camera settings
+local quality_values = {'VERY_LOW', 'LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH'}
+local metering_values = {'SPOT', 'CENTER_WEIGHTED', 'AVERAGE'}
 
-	local camera_settings = {}
+-- default settings
+local auto_exp_settings = {
+	metering = 'AVERAGE',
+	exposure = 0.18,
+	exposure_speed = 0.5,
+	shutter_limit = 800,
+	analog_gain_limit = 248.0,
+	white_balance_speed = 0.5
+}
+
+local manual_exp_settings = {
+	shutter = 800,
+	analog_gain = 100,
+	red_gain = 512,
+	green_gain = 512,
+	blue_gain = 512
+}
+
+-- auto/manual status, accessible outside the module
+_M.is_auto_exp = true
+
+-- helper function to update settings if they are present (otherwise keep defaults)
+function update_if_present(settings, updates)
+    for k, v in pairs(updates) do
+        if v ~= nil then
+            settings[k] = v
+        end
+    end
+end
+
+-- Update the saved auto exposure settings with the provided args
+-- The caller still needs to _M.run_auto_exposure() every 100ms after this
+function _M.set_auto_exp_settings(args)
+	update_if_present(auto_exp_settings, args)
+	_M.is_auto_exp = true
+end
+
+-- Turns off auto exposure flag if present and updates the manual exposure settings with the provided args
+-- Sets the manual exposure settings into the camera using the low level functions
+function _M.set_manual_exp_settings(args)
+	_M.is_auto_exp = false
+	update_if_present(manual_exp_settings, args)
+
+	-- actually update the state of the camera
+	frame.camera.set_shutter(manual_exp_settings.shutter)
+	frame.camera.set_gain(manual_exp_settings.analog_gain)
+	frame.camera.set_white_balance(manual_exp_settings.red_gain, manual_exp_settings.green_gain, manual_exp_settings.blue_gain)
+end
+
+-- parse the auto exposure settings message from the host into a table we can use with set_auto_exp_settings()
+function _M.parse_auto_exp_settings(data)
+	local settings = {}
+
+	settings.metering = metering_values[string.byte(data, 1) + 1]
+	settings.exposure = string.byte(data, 2) / 255.0
+	settings.exposure_speed = string.byte(data, 3) / 255.0
+	settings.shutter_limit = string.byte(data, 4) << 8 | string.byte(data, 5) & 0x3FFF
+	settings.analog_gain_limit = string.byte(data, 6) & 0xFF
+	settings.white_balance_speed = string.byte(data, 7) / 255.0
+
+	return settings
+end
+
+-- parse the manual exposure settings message from the host into a table we can use with set_manual_exp_settings()
+function _M.parse_manual_exp_settings(data)
+	local settings = {}
+
+    settings.shutter = string.byte(data, 1) << 8 | string.byte(data, 2) & 0x3FFF
+	settings.analog_gain = string.byte(data, 3) & 0xFF
+	settings.red_gain = string.byte(data, 4) << 8 | string.byte(data, 5) & 0x3FF
+	settings.green_gain = string.byte(data, 6) << 8 | string.byte(data, 7) & 0x3FF
+	settings.blue_gain = string.byte(data, 8) << 8 | string.byte(data, 9) & 0x3FF
+
+	return settings
+end
+
+-- parse the capture settings message from the host into a table we can use with the capture_and_send function
+function _M.parse_capture_settings(data)
+
+	local settings = {}
 	-- quality and metering mode are indices into arrays of values (0-based phoneside; 1-based in Lua)
-	camera_settings.quality = quality_values[string.byte(data, 1) + 1]
-	camera_settings.auto = string.byte(data, 2) > 0
+	settings.quality = quality_values[string.byte(data, 1) + 1]
+	settings.resolution = (string.byte(data, 2) << 8 | string.byte(data, 3)) * 2
+	settings.pan = (string.byte(data, 4) << 8 | string.byte(data, 5)) - 140
+	settings.raw = string.byte(data, 6) > 0
 
-	if camera_settings.auto == true then
-		camera_settings.auto_exp_gain_times = string.byte(data, 2)
-		camera_settings.auto_exp_interval = string.byte(data, 3) / 1000.0
-		camera_settings.metering = metering_values[string.byte(data, 4) + 1]
-		camera_settings.exposure = string.byte(data, 5) / 255.0
-		camera_settings.exposure_speed = string.byte(data, 6) / 255.0
-		camera_settings.shutter_limit = string.byte(data, 7) << 8 | string.byte(data, 8) & 0x3FFF
-		camera_settings.analog_gain_limit = string.byte(data, 9) & 0xFF
-		camera_settings.white_balance_speed = string.byte(data, 10) / 255.0
-	else
-		camera_settings.manual_shutter = string.byte(data, 11) << 8 | string.byte(data, 12) & 0x3FFF
-		camera_settings.manual_analog_gain = string.byte(data, 13) & 0xFF
-		camera_settings.manual_red_gain = string.byte(data, 14) << 8 | string.byte(data, 15) & 0x3FF
-		camera_settings.manual_green_gain = string.byte(data, 16) << 8 | string.byte(data, 17) & 0x3FF
-		camera_settings.manual_blue_gain = string.byte(data, 18) << 8 | string.byte(data, 19) & 0x3FF
-	end
-
-	return camera_settings
+	return settings
 end
 
 -- send data with retries and no sleeps, bail after 2 seconds
@@ -60,48 +123,30 @@ function send_data(data)
 	end
 end
 
-function _M.camera_capture_and_send(args)
-	local quality = args.quality or 50
+-- Runs the auto exposure algorithm with the current settings (call this every 100ms)
+function _M.run_auto_exposure()
+	frame.camera.auto{auto_exp_settings}
+end
 
-	if args.auto then
-		local auto_exp_gain_times = args.auto_exp_gain_times or 0
-		local auto_exp_interval = args.auto_exp_interval or 0.1
-		local metering = args.metering or 'AVERAGE'
-		local exposure = args.exposure or 0.18
-		local exposure_speed = args.exposure_speed or 0.5
-		local shutter_limit = args.shutter_limit or 800
-		local analog_gain_limit = args.analog_gain_limit or 248.0
-		local white_balance_speed = args.white_balance_speed or 0.5
+-- takes a capture_settings table and sends the image data to the host
+function _M.capture_and_send(args)
+	frame.camera.capture { resolution=args.resolution, quality_factor=args.quality, pan=args.pan }
 
-		for run=1,auto_exp_gain_times,1 do
-			frame.camera.auto { metering = metering, exposure = exposure, exposure_speed = exposure_speed, shutter_limit = shutter_limit, analog_gain_limit = analog_gain_limit, white_balance_speed = white_balance_speed }
-			frame.sleep(auto_exp_interval)
-		end
-	else
-		local manual_shutter = args.manual_shutter or 800
-		local manual_analog_gain = args.manual_analog_gain or 100
-		local manual_red_gain = args.manual_red_gain or 512
-		local manual_green_gain = args.manual_green_gain or 512
-		local manual_blue_gain = args.manual_blue_gain or 512
-
-		frame.camera.set_shutter(manual_shutter)
-		frame.camera.set_gain(manual_analog_gain)
-		frame.camera.set_white_balance(manual_red_gain, manual_green_gain, manual_blue_gain)
-
-		-- TODO remove after testing if manual shutter or gain needs a delay to take effect on the first capture after a setting change
-		frame.sleep(0.1)
-	end
-
-	frame.camera.capture { quality_factor = quality }
 	-- wait until the capture is finished and the image is ready before continuing
 	while not frame.camera.image_ready() do
-		frame.sleep(0.05)
+		frame.sleep(0.005)
 	end
 
 	local data = ''
+	local raw = args.raw
 
 	while true do
-        data = frame.camera.read_raw(frame.bluetooth.max_length() - 1)
+		-- skip the 623 byte header if the caller requested raw data
+		if (raw) then
+        	data = frame.camera.read_raw(frame.bluetooth.max_length() - 1)
+		else
+        	data = frame.camera.read(frame.bluetooth.max_length() - 1)
+		end
 
         if (data ~= nil) then
 			send_data(string.char(IMAGE_MSG) .. data)
