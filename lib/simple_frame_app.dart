@@ -94,7 +94,9 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
       await connectToScannedFrame(device);
 
       // signal that scanForFrame can now finish
-      completer.complete();
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
     });
 
     // wait until the listen(onData) or the onTimeout is completed
