@@ -1,3 +1,8 @@
+## 4.0.2
+
+* Bugfix: add guard against completing bluetooth connection Future twice
+* Bugfix: the updated jpeg quality parameter had an incorrect name and was not being set correctly
+
 ## 4.0.1
 
 * Modified `camera.lua` to split lines that were affected by a bug in the lua minifier. Resolution and Pan values were being affected.
