@@ -27,7 +27,7 @@ class RxPhoto {
   final bool isRaw;
 
   /// The quality level of the jpeg image to be returned ['VERY_LOW', 'LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH']
-  final String qualityLevel;
+  final String quality;
 
   /// The resolution of the (square) raw image to be returned from Frame
   /// Must be an even number between 100 and 720 inclusive
@@ -39,21 +39,21 @@ class RxPhoto {
   StreamController<Uint8List>? _controller;
 
   /// A map of jpeg headers for each quality level which we fill as we receive the first image of each quality level/resolution
-  /// Key format is 'qualityLevel_resolution' e.g. 'VERY_LOW_512'
+  /// Key format is 'quality_resolution' e.g. 'VERY_LOW_512'
   static final Map<String, Uint8List> jpegHeaderMap = {};
-  static bool hasJpegHeader(String qualityLevel, int resolution) => jpegHeaderMap.containsKey('${qualityLevel}_$resolution');
+  static bool hasJpegHeader(String quality, int resolution) => jpegHeaderMap.containsKey('${quality}_$resolution');
 
   RxPhoto({
     this.nonFinalChunkFlag = 0x07,
     this.finalChunkFlag = 0x08,
     this.upright = true,
     this.isRaw = false,
-    required this.qualityLevel,
+    required this.quality,
     required this.resolution,
   });
 
   /// Attach this RxPhoto to the Frame's dataResponse characteristic stream.
-  /// If `isRaw` is true, then qualityLevel and resolution must be specified and match the raw image requested from Frame
+  /// If `isRaw` is true, then quality and resolution must be specified and match the raw image requested from Frame
   /// so that the correct jpeg header can be prepended.
   Stream<Uint8List> attach(Stream<List<int>> dataResponse) {
     // TODO check for illegal state - attach() already called on this RxPhoto etc?
@@ -66,10 +66,10 @@ class RxPhoto {
     // if isRaw is true, a jpeg header must be prepended to the raw image data
     if (isRaw) {
       // fetch the jpeg header for this quality level and resolution
-      String key = '${qualityLevel}_$resolution';
+      String key = '${quality}_$resolution';
 
       if (!jpegHeaderMap.containsKey(key)) {
-        throw Exception('No jpeg header found for quality level $qualityLevel and resolution $resolution - request full jpeg once before requesting raw');
+        throw Exception('No jpeg header found for quality level $quality and resolution $resolution - request full jpeg once before requesting raw');
       }
 
       // add the jpeg header bytes for this quality level (623 bytes)
@@ -102,7 +102,7 @@ class RxPhoto {
           // if this image is a full jpeg, save the jpeg header for this quality level and resolution
           // so that it can be prepended to raw images of the same quality level and resolution
           if (!isRaw) {
-            String key = '${qualityLevel}_$resolution';
+            String key = '${quality}_$resolution';
             if (!jpegHeaderMap.containsKey(key)) {
               jpegHeaderMap[key] = finalImageBytes.sublist(0, 623);
             }

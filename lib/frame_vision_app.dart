@@ -171,7 +171,7 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
       ));
 
       // synchronously await the image response (and add jpeg header if necessary)
-      Uint8List imageData = await RxPhoto(qualityLevel: qualityValues[currQualIndex], resolution: currRes, isRaw: requestRaw, upright: upright).attach(frame!.dataResponse).first;
+      Uint8List imageData = await RxPhoto(quality: qualityValues[currQualIndex], resolution: currRes, isRaw: requestRaw, upright: upright).attach(frame!.dataResponse).first;
 
       // received a whole-image Uint8List with jpeg header included
       _stopwatch.stop();

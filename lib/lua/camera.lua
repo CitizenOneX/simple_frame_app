@@ -132,7 +132,7 @@ end
 
 -- takes a capture_settings table and sends the image data to the host
 function _M.capture_and_send(args)
-	frame.camera.capture { resolution=args.resolution, quality_factor=args.quality, pan=args.pan }
+	frame.camera.capture { resolution=args.resolution, quality=args.quality, pan=args.pan }
 
 	-- wait until the capture is finished and the image is ready before continuing
 	while not frame.camera.image_ready() do
