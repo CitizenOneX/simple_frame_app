@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
-import 'brilliant_bluetooth.dart';
+import 'package:frame_ble/brilliant_bluetooth.dart';
+import 'package:frame_ble/brilliant_connection_state.dart';
+import 'package:frame_ble/brilliant_device.dart';
+import 'package:frame_ble/brilliant_scanned_device.dart';
 import 'package:frame_msg/tx/sprite.dart';
 
 /// basic State Machine for the app; mostly for bluetooth lifecycle,
@@ -385,7 +388,7 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
       for (var pathFile in luaFiles) {
         String fileName = pathFile.split('/').last;
         // send the lua script to the Frame
-        await frame!.uploadScript(fileName, pathFile);
+        await frame!.uploadScript(fileName, await rootBundle.loadString(pathFile));
       }
 
       // kick off the main application loop: if there is only one lua file, use it;
