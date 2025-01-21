@@ -1,5 +1,7 @@
 ## 5.0.0
 
+* **Breaking Change**: Standard Frame messages e.g. `TxSprite` are imported through the `frame_msg` package, so in `pubspec.yaml` add the assets like `packages/frame_msg/lua/sprite.min.lua` instead of `packages/simple_frame_app/lua/sprite.min.lua`
+* **Breaking Change**: `frame_ble` package that handles bluetooth connectivity to Frame no longer has a dependency on the `TxMsg` abstract class, so the `sendMessage(TxMsg)` function has changed to `sendMessage(int msgCode, Uint8List payload)` and can be called like so: `frame.sendMessage(msg.msgCode, msg.pack())`
 * Refactored Brilliant Bluetooth code into new package `frame_ble` and added dependency
 * Refactored Frame Rx and Tx messages into new package `frame_msg` and added dependency
 * Apps wanting the `simple_frame_app` and `frame_vision_app` scaffolding should continue to use this package, but simpler apps requiring only a bluetooth connection to Frame to run simple Lua commands, or apps doing custom messages but outside the `simple_frame_app` structure might wish to use `frame_ble` or (`frame_ble` plus `frame_msg`) respectively.
