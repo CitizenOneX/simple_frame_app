@@ -5,8 +5,6 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 
-import 'tx_msg.dart';
-
 final _log = Logger("Bluetooth");
 
 class BrilliantBluetoothException implements Exception {
@@ -223,8 +221,7 @@ class BrilliantDevice {
   /// [0x01 (dataFlag), messageFlag & 0xFF, {first packet: length(Uint16)}, payload(chunked)]
   /// until all data in the payload is sent. Payload data cannot exceed 65535 bytes in length.
   /// Can be received by a corresponding Lua function on Frame.
-  Future<void> sendMessage(TxMsg message) async {
-    Uint8List payload = message.pack();
+  Future<void> sendMessage(int msgCode, Uint8List payload) async {
 
     if (payload.length > 65535) {
       return Future.error(const BrilliantBluetoothException(
@@ -254,7 +251,7 @@ class BrilliantDevice {
           // first and final chunk - small payload
           _log.finer('sendMessage: first and final packet');
           packetBuffer[0] = 0x01;
-          packetBuffer[1] = message.msgCode & 0xFF;
+          packetBuffer[1] = msgCode & 0xFF;
           packetBuffer[2] = lengthMsb;
           packetBuffer[3] = lengthLsb;
           packetBuffer.setAll(
@@ -266,7 +263,7 @@ class BrilliantDevice {
           // first and final chunk - small payload, exact packet size match
           _log.finer('sendMessage: first and final packet, exact match');
           packetBuffer[0] = 0x01;
-          packetBuffer[1] = message.msgCode & 0xFF;
+          packetBuffer[1] = msgCode & 0xFF;
           packetBuffer[2] = lengthMsb;
           packetBuffer[3] = lengthLsb;
           packetBuffer.setAll(
@@ -277,7 +274,7 @@ class BrilliantDevice {
           // first of many chunks
           _log.finer('sendMessage: first of many packets');
           packetBuffer[0] = 0x01;
-          packetBuffer[1] = message.msgCode & 0xFF;
+          packetBuffer[1] = msgCode & 0xFF;
           packetBuffer[2] = lengthMsb;
           packetBuffer[3] = lengthLsb;
           packetBuffer.setAll(
@@ -291,7 +288,7 @@ class BrilliantDevice {
           _log.finer('sendMessage: not the first packet, final packet');
           // final data chunk, smaller than chunksize
           packetBuffer[0] = 0x01;
-          packetBuffer[1] = message.msgCode & 0xFF;
+          packetBuffer[1] = msgCode & 0xFF;
           packetBuffer.setAll(
               2, payload.getRange(sentBytes, sentBytes + bytesRemaining));
           sentBytes += bytesRemaining;
@@ -302,7 +299,7 @@ class BrilliantDevice {
               'sendMessage: not the first packet, non-final packet or exact match final packet');
           // non-final data chunk or final chunk with exact packet size match
           packetBuffer[0] = 0x01;
-          packetBuffer[1] = message.msgCode & 0xFF;
+          packetBuffer[1] = msgCode & 0xFF;
           packetBuffer.setAll(
               2, payload.getRange(sentBytes, sentBytes + chunksize));
           sentBytes += chunksize;

@@ -3,14 +3,14 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
-import 'package:simple_frame_app/rx/photo.dart';
-import 'package:simple_frame_app/rx/tap.dart';
-import 'package:simple_frame_app/tx/capture_settings.dart';
-import 'package:simple_frame_app/tx/manual_exp_settings.dart';
-import 'package:simple_frame_app/tx/auto_exp_settings.dart';
+import 'package:frame_msg/rx/photo.dart';
+import 'package:frame_msg/rx/tap.dart';
+import 'package:frame_msg/tx/capture_settings.dart';
+import 'package:frame_msg/tx/manual_exp_settings.dart';
+import 'package:frame_msg/tx/auto_exp_settings.dart';
 import 'package:simple_frame_app/simple_frame_app.dart';
-import 'package:simple_frame_app/tx/code.dart';
-import 'package:simple_frame_app/tx/plain_text.dart';
+import 'package:frame_msg/tx/code.dart';
+import 'package:frame_msg/tx/plain_text.dart';
 
 final _log = Logger("FVA");
 
@@ -80,7 +80,8 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
     );
 
     // let Frame know to subscribe for taps and send them to us
-    await frame!.sendMessage(TxCode(msgCode: 0x10, value: 1));
+    final code = TxCode(msgCode: 0x10, value: 1);
+    await frame!.sendMessage(code.msgCode, code.pack());
 
     // prompt the user to begin tapping or other app-specific setup
     await onRun();
@@ -89,7 +90,7 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
   }
 
   Future<void> updateAutoExpSettings() async {
-    await frame!.sendMessage(TxAutoExpSettings(
+    final autoExpSettings = TxAutoExpSettings(
       msgCode: 0x0e,
       meteringIndex: meteringIndex,
       exposure: exposure,
@@ -97,18 +98,22 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
       shutterLimit: shutterLimit,
       analogGainLimit: analogGainLimit,
       whiteBalanceSpeed: whiteBalanceSpeed,
-    ));
+    );
+
+    await frame!.sendMessage(autoExpSettings.msgCode, autoExpSettings.pack());
   }
 
   Future<void> updateManualExpSettings() async {
-    await frame!.sendMessage(TxManualExpSettings(
+    final manualExpSettings = TxManualExpSettings(
       msgCode: 0x0f,
       manualShutter: manualShutter,
       manualAnalogGain: manualAnalogGain,
       manualRedGain: manualRedGain,
       manualGreenGain: manualGreenGain,
       manualBlueGain: manualBlueGain,
-    ));
+    );
+
+    await frame!.sendMessage(manualExpSettings.msgCode, manualExpSettings.pack());
   }
 
   Future<void> sendExposureSettings() async {
@@ -162,13 +167,15 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
       _stopwatch.start();
 
       // send the lua command to request a photo from the Frame based on the current settings
-      await frame!.sendMessage(TxCaptureSettings(
+      final captureSettings = TxCaptureSettings(
         msgCode: 0x0d,
         resolution: currRes,
         qualityIndex: currQualIndex,
         pan: currPan,
         raw: requestRaw,
-      ));
+      );
+
+      await frame!.sendMessage(captureSettings.msgCode, captureSettings.pack());
 
       // synchronously await the image response (and add jpeg header if necessary)
       Uint8List imageData = await RxPhoto(quality: qualityValues[currQualIndex], resolution: currRes, isRaw: requestRaw, upright: upright).attach(frame!.dataResponse).first;
@@ -207,10 +214,12 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
     await onCancel();
 
     // let Frame know to stop sending taps
-    await frame!.sendMessage(TxCode(msgCode: 0x10, value: 0));
+    final code = TxCode(msgCode: 0x10, value: 0);
+    await frame!.sendMessage(code.msgCode, code.pack());
 
     // clear the display
-    await frame!.sendMessage(TxPlainText(msgCode: 0x0a, text: ' '));
+    final plainText = TxPlainText(msgCode: 0x0a, text: ' ');
+    await frame!.sendMessage(plainText.msgCode, plainText.pack());
 
     setState(() {
       currentState = ApplicationState.ready;

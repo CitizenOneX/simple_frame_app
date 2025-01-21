@@ -3,6 +3,7 @@ description: "Flutter and Lua quickstart app scaffolding and standard library fu
 version: 4.0.2
 homepage:
 repository: https://github.com/CitizenOneX/simple_frame_app
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 environment:
   sdk: '>=3.4.4 <4.0.0'
@@ -14,6 +15,8 @@ dependencies:
   flutter_blue_plus: ^1.32.12
   image: ^4.2.0
   logging: ^1.2.0
+  frame_msg:
+    path: ../frame_msg
 
 dev_dependencies:
   flutter_test:

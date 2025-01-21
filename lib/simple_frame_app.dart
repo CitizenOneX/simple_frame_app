@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'brilliant_bluetooth.dart';
-import 'tx/sprite.dart';
+import 'package:frame_msg/tx/sprite.dart';
 
 /// basic State Machine for the app; mostly for bluetooth lifecycle,
 /// all app activity expected to take place during "running" state
@@ -511,7 +511,7 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
                 Uint8List.sublistView(await rootBundle.load(entry.value)));
 
         // send sprite to Frame with its associated message type
-        await frame!.sendMessage(sprite);
+        await frame!.sendMessage(sprite.msgCode, sprite.pack());
         await Future.delayed(const Duration(milliseconds: 200));
       } catch (e) {
         _log.severe('$e');
