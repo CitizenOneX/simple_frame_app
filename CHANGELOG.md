@@ -1,3 +1,9 @@
+## 5.0.0
+
+* Refactored Brilliant Bluetooth code into new package `frame_ble` and added dependency
+* Refactored Frame Rx and Tx messages into new package `frame_msg` and added dependency
+* Apps wanting the `simple_frame_app` and `frame_vision_app` scaffolding should continue to use this package, but simpler apps requiring only a bluetooth connection to Frame to run simple Lua commands, or apps doing custom messages but outside the `simple_frame_app` structure might wish to use `frame_ble` or (`frame_ble` plus `frame_msg`) respectively.
+
 ## 4.0.2
 
 * Bugfix: add guard against completing bluetooth connection Future twice
