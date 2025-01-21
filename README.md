@@ -31,15 +31,15 @@ Flutter and Lua quickstart app scaffolding and standard library functions for Br
 * Follow the `flutter_blue_plus` [instructions](https://pub.dev/packages/flutter_blue_plus#getting-started) for modifying configuration files on Android and iOS for Bluetooth LE support
 * On Android, also append `|navigation` to the long list in `android:configChanges` to prevent app activity restarts on bluetooth connect/disconnect.
 * Copy template files `template/main.dart` and `template/frame_app.lua` to your project's lib/ and assets/ directories respectively (also see [sample projects](https://github.com/CitizenOneX?tab=repositories) for examples of phoneside and frameside apps.)
-* Add assets to `pubspec.yaml` under `flutter:` `assets:`, both standard and custom, that you wish to send to Frame on app startup e.g. `- packages/simple_frame_app/lua/camera.min.lua` for a standard Lua library, or `- assets/sprites/20_mysprite.png` for an app-specific sprite. For the template `frame_app.lua`, add the following:
+* Add assets to `pubspec.yaml` under `flutter:` `assets:`, both standard and custom, that you wish to send to Frame on app startup e.g. `- packages/frame_msg/lua/camera.min.lua` for a standard Lua library, or `- assets/sprites/20_mysprite.png` for an app-specific sprite. For the template `frame_app.lua`, add the following:
 ```
 flutter:
   assets:
-  - packages/simple_frame_app/lua/battery.min.lua
-  - packages/simple_frame_app/lua/data.min.lua
-  - packages/simple_frame_app/lua/code.min.lua
-  - packages/simple_frame_app/lua/plain_text.min.lua
-  - packages/simple_frame_app/lua/sprite.min.lua
+  - packages/frame_msg/lua/battery.min.lua
+  - packages/frame_msg/lua/data.min.lua
+  - packages/frame_msg/lua/code.min.lua
+  - packages/frame_msg/lua/plain_text.min.lua
+  - packages/frame_msg/lua/sprite.min.lua
   - assets/frame_app.lua
 ```
 
@@ -49,21 +49,23 @@ Phoneside (Flutter/Dart)
 
 ```dart
 // send some ASCII text to Frame
-await frame!.sendMessage(TxPlainText(msgCode: 0x12, text: 'Hello, Frame!'));
+final text = TxPlainText(msgCode: 0x12, text: 'Hello, Frame!');
+await frame!.sendMessage(text.msgCode, text.pack());
 
 // asking Frame to take a photo and send it back
 var takePhoto = TxCameraSettings(msgCode: 0x0d);
-await frame!.sendMessage(takePhoto);
+await frame!.sendMessage(takePhoto.msgCode, takePhoto.pack());
 
 // synchronously await the image response encoded as a jpeg
 Uint8List imageData = await RxPhoto(qualityLevel: 50).attach(frame!.dataResponse).first;
 
 // send a custom message and value to the Lua app running on Frame
-await frame!.sendMessage(TxCode(msgCode: 0x0e, value: 1));
+final code = TxCode(msgCode: 0x0e, value: 1);
+await frame!.sendMessage(code.msgCode, code.pack());
 
 // send a sprite to Frame with an identifying message code
 var sprite = TxSprite.fromPngBytes(msgCode: 0x2F, pngBytes: bytesFromFileOrWeb);
-await frame!.sendMessage(sprite);
+await frame!.sendMessage(sprite.msgCode, sprite.pack());
 ```
 
 Frameside (Lua)
