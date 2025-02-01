@@ -1,6 +1,7 @@
 ## 5.0.0
 
-* **Breaking Change**: Standard Frame messages e.g. `TxSprite` are imported through the `frame_msg` package, so in `pubspec.yaml` add the assets like `packages/frame_msg/lua/sprite.min.lua` instead of `packages/simple_frame_app/lua/sprite.min.lua`
+* **Breaking Change**: Add `frame_msg: ^0.0.1` package dependency to `pubspec.yaml` alongside `simple_frame_app` for message classes
+* **Breaking Change**: Standard Frame messages e.g. `TxSprite` are imported through the `frame_msg` package, so in `pubspec.yaml` add the assets like `packages/frame_msg/lua/sprite.min.lua` instead of `packages/simple_frame_app/lua/sprite.min.lua` and in `main.dart` instead of e.g. `import 'package:simple_frame_app/tx/sprite.dart';` use `import 'package:frame_msg/tx/sprite.dart';`
 * **Breaking Change**: `frame_ble` package that handles bluetooth connectivity to Frame no longer has a dependency on the `TxMsg` abstract class, so the `sendMessage(TxMsg)` function has changed to `sendMessage(int msgCode, Uint8List payload)` and can be called like so: `frame.sendMessage(msg.msgCode, msg.pack())`
 * Refactored Brilliant Bluetooth code into new package `frame_ble` and added dependency
 * Refactored Frame Rx and Tx messages into new package `frame_msg` and added dependency
