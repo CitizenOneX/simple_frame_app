@@ -63,7 +63,8 @@ function app_loop()
 
 				-- periodic battery level updates, 120s for a camera app
 				last_batt_update = battery.send_batt_if_elapsed(last_batt_update, 120)
-				frame.sleep(0.1)
+				-- can't sleep for long, might be lots of incoming bluetooth data to process
+				frame.sleep(0.001)
 			end
 		)
 		-- Catch the break signal here and clean up the display
