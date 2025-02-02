@@ -1,8 +1,9 @@
 ## 5.0.0
 
-* **Breaking Change**: Add `frame_msg: ^0.0.1` package dependency to `pubspec.yaml` alongside `simple_frame_app` for message classes
-* **Breaking Change**: Standard Frame messages e.g. `TxSprite` are imported through the `frame_msg` package, so in `pubspec.yaml` add the assets like `packages/frame_msg/lua/sprite.min.lua` instead of `packages/simple_frame_app/lua/sprite.min.lua` and in `main.dart` instead of e.g. `import 'package:simple_frame_app/tx/sprite.dart';` use `import 'package:frame_msg/tx/sprite.dart';`
-* **Breaking Change**: `frame_ble` package that handles bluetooth connectivity to Frame no longer has a dependency on the `TxMsg` abstract class, so the `sendMessage(TxMsg)` function has changed to `sendMessage(int msgCode, Uint8List payload)` and can be called like so: `frame.sendMessage(msg.msgCode, msg.pack())`
+* **Migration Step**: Add `frame_msg: ^0.0.1` package dependency for message classes to `pubspec.yaml` alongside `simple_frame_app`
+* **Migration Step**: Standard Frame messages e.g. `TxSprite` are imported through the `frame_msg` package, so in `pubspec.yaml` reference the assets like `packages/frame_msg/lua/sprite.min.lua` instead of `packages/simple_frame_app/lua/sprite.min.lua`. In `main.dart` instead of e.g. `import 'package:simple_frame_app/tx/sprite.dart';` use `import 'package:frame_msg/tx/sprite.dart';`
+* **Migration Step**: `frame_ble` package that handles bluetooth connectivity to Frame no longer has a dependency on the `TxMsg` abstract class, so the `sendMessage(TxMsg)` function has changed to `sendMessage(int msgCode, Uint8List payload)` and can be called like so: `frame.sendMessage(msg.msgCode, msg.pack())` if you have constructed a `TxMsg`.
+* **Migration Step**: if you previously had an `ImageMetadata` widget in your widget tree (either a `ManualExpImageMetadata` or an `AutoExpImageMetadata`), these are now plain (non-widget) classes, so wrap it in a `ImageMetadataWidget` to put in the widget tree if required
 * Refactored Brilliant Bluetooth code into new package `frame_ble` and added dependency
 * Refactored Frame Rx and Tx messages into new package `frame_msg` and added dependency
 * Apps wanting the `simple_frame_app` and `frame_vision_app` scaffolding should continue to use this package, but simpler apps requiring only a bluetooth connection to Frame to run simple Lua commands, or apps doing custom messages but outside the `simple_frame_app` structure might wish to use `frame_ble` or (`frame_ble` plus `frame_msg`) respectively.
