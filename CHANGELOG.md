@@ -1,3 +1,9 @@
+## 6.0.0
+
+* NOTE: requires updated firmware with `rgb_gain_limit` for auto exposure and white balance algorithm
+* Updated `FrameVisionApp` to allow for `rgb_gain_limit` to be set to cap the per-channel gains that were amplifying sensor noise.
+* Updated to `frame_msg 1.0.0` for the Tx settings classes associated with the `rgb_gain_limit` parameter and updated auto and manual exposure defualts.
+
 ## 5.0.0
 
 * **Migration Step**: Add `frame_msg: ^0.0.1` package dependency for message classes to `pubspec.yaml` alongside `simple_frame_app`

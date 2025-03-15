@@ -21,7 +21,7 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
   // camera settings
   int qualityIndex = 4;
   final List<String> qualityValues = ['VERY_LOW', 'LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH'];
-  int resolution = 512;
+  int resolution = 720;
   int pan = 0;
   bool upright = true;
   bool _isAutoExposure = true;
@@ -29,18 +29,19 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
   // autoexposure/gain parameters
   int meteringIndex = 2;
   final List<String> meteringValues = ['SPOT', 'CENTER_WEIGHTED', 'AVERAGE'];
-  double exposure = 0.18; // 0.0 <= val <= 1.0
-  double exposureSpeed = 0.5;  // 0.0 <= val <= 1.0
-  int shutterLimit = 800; // 4 < val < 16383
-  int analogGainLimit = 248;     // 0 (1?) <= val <= 248
+  double exposure = 0.18;     // 0.0 <= val <= 1.0
+  double exposureSpeed = 0.5; // 0.0 <= val <= 1.0
+  int shutterLimit = 3072;    // 4 <= val <= 16383
+  int analogGainLimit = 16;   // 1 <= val <= 248
   double whiteBalanceSpeed = 0.5;  // 0.0 <= val <= 1.0
+  int rgbGainLimit = 141;     // 0 <= val <= 1023
 
   // manual exposure/gain parameters
-  int manualShutter = 16383; // 4 < val < 16383
-  int manualAnalogGain = 1;     // 0 (1?) <= val <= 248
-  int manualRedGain = 64; // 0 <= val <= 1023
+  int manualShutter = 3072; // 4 <= val <= 16383
+  int manualAnalogGain = 16; // 1 <= val <= 248
+  int manualRedGain = 121;  // 0 <= val <= 1023
   int manualGreenGain = 64; // 0 <= val <= 1023
-  int manualBlueGain = 64; // 0 <= val <= 1023
+  int manualBlueGain = 140; // 0 <= val <= 1023
 
   // tap subscription
   StreamSubscription<int>? _tapSubs;
@@ -98,6 +99,7 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
       shutterLimit: shutterLimit,
       analogGainLimit: analogGainLimit,
       whiteBalanceSpeed: whiteBalanceSpeed,
+      rgbGainLimit: rgbGainLimit,
     );
 
     await frame!.sendMessage(autoExpSettings.msgCode, autoExpSettings.pack());
@@ -146,7 +148,8 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
             exposureSpeed: exposureSpeed,
             shutterLimit: shutterLimit,
             analogGainLimit: analogGainLimit,
-            whiteBalanceSpeed: whiteBalanceSpeed);
+            whiteBalanceSpeed: whiteBalanceSpeed,
+            rgbGainLimit: rgbGainLimit);
       }
       else {
         meta = ManualExpImageMetadata(
@@ -350,7 +353,7 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
                 value: shutterLimit.toDouble(),
                 min: 4,
                 max: 16383,
-                divisions: 10,
+                divisions: 16,
                 label: shutterLimit.toStringAsFixed(0),
                 onChanged: (value) {
                   setState(() {
@@ -363,9 +366,9 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
               title: const Text('Analog Gain Limit'),
               subtitle: Slider(
                 value: analogGainLimit.toDouble(),
-                min: 0,
+                min: 1,
                 max: 248,
-                divisions: 8,
+                divisions: 16,
                 label: analogGainLimit.toStringAsFixed(0),
                 onChanged: (value) {
                   setState(() {
@@ -389,6 +392,21 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
                 },
               ),
             ),
+            ListTile(
+              title: const Text('RGB Gain Limit'),
+              subtitle: Slider(
+                value: rgbGainLimit.toDouble(),
+                min: 0,
+                max: 1023,
+                divisions: 32,
+                label: rgbGainLimit.toStringAsFixed(0),
+                onChanged: (value) {
+                  setState(() {
+                    rgbGainLimit = value.toInt();
+                  });
+                },
+              ),
+            ),
           ] else ...[
             // Widgets visible in Manual mode
             ListTile(
@@ -397,7 +415,7 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
                 value: manualShutter.toDouble(),
                 min: 4,
                 max: 16383,
-                divisions: 100,
+                divisions: 32,
                 label: manualShutter.toStringAsFixed(0),
                 onChanged: (value) {
                   setState(() {
@@ -410,7 +428,7 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
               title: const Text('Manual Analog Gain'),
               subtitle: Slider(
                 value: manualAnalogGain.toDouble(),
-                min: 0,
+                min: 1,
                 max: 248,
                 divisions: 50,
                 label: manualAnalogGain.toStringAsFixed(0),
@@ -427,7 +445,7 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
                 value: manualRedGain.toDouble(),
                 min: 0,
                 max: 1023,
-                divisions: 100,
+                divisions: 50,
                 label: manualRedGain.toStringAsFixed(0),
                 onChanged: (value) {
                   setState(() {
@@ -442,7 +460,7 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
                 value: manualGreenGain.toDouble(),
                 min: 0,
                 max: 1023,
-                divisions: 100,
+                divisions: 50,
                 label: manualGreenGain.toStringAsFixed(0),
                 onChanged: (value) {
                   setState(() {
@@ -457,7 +475,7 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
                 value: manualBlueGain.toDouble(),
                 min: 0,
                 max: 1023,
-                divisions: 100,
+                divisions: 50,
                 label: manualBlueGain.toStringAsFixed(0),
                 onChanged: (value) {
                   setState(() {
@@ -515,6 +533,7 @@ class AutoExpImageMetadata extends ImageMetadata {
   final int shutterLimit;
   final int analogGainLimit;
   final double whiteBalanceSpeed;
+  final int rgbGainLimit;
 
   AutoExpImageMetadata(
       {required super.quality,
@@ -525,14 +544,15 @@ class AutoExpImageMetadata extends ImageMetadata {
       required this.exposureSpeed,
       required this.shutterLimit,
       required this.analogGainLimit,
-      required this.whiteBalanceSpeed});
+      required this.whiteBalanceSpeed,
+      required this.rgbGainLimit});
 
   @override
   List<String> toMetaDataList() {
     return [
-        'Quality: $quality\nResolution: $resolution\nPan: $pan\nMetering: $metering',
+        'Quality: $quality\nResolution: $resolution\nPan: $pan\nMetering: ${metering.substring(0,4)}',
         'Exposure: $exposure\nExposureSpeed: $exposureSpeed\nShutterLim: $shutterLimit\nAnalogGainLim: $analogGainLimit',
-        'WBSpeed: $whiteBalanceSpeed\nSize: ${((size)/1024).toStringAsFixed(1)} kb\nTime: $elapsedTimeMs ms',
+        'WBSpeed: $whiteBalanceSpeed\nRgbGainLim: $rgbGainLimit\nSize: ${((size)/1024).toStringAsFixed(1)} kb\nTime: $elapsedTimeMs ms',
       ];
   }
 
