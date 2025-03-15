@@ -1,3 +1,7 @@
+## 6.0.1
+
+* Changed image metadata widget text style to 10pt Helvetica to work better across Android and iOS
+
 ## 6.0.0
 
 * NOTE: requires updated firmware with `rgb_gain_limit` for auto exposure and white balance algorithm
