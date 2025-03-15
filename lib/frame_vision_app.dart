@@ -502,7 +502,7 @@ class ImageMetadataWidget extends StatelessWidget {
     List<Widget> columns = [];
 
     for (int i = 0; i < metaList.length; i++) {
-      columns.add(Text(metaList[i]));
+      columns.add(Text(metaList[i], style: const TextStyle(fontSize: 10, fontFamily: 'helvetica')));
 
       if (i<metaList.length-1) {
         columns.add(const Spacer());
