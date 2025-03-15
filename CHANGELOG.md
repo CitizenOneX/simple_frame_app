@@ -1,3 +1,7 @@
+## 6.0.2
+
+* Updated `frame_ble` to `1.0.1` to add wait for the bluetooth adapter to be on, particularly for iOS since bluetooth startup can be a bit slower
+
 ## 6.0.1
 
 * Changed image metadata widget text style to 10pt Helvetica to work better across Android and iOS
