@@ -1,3 +1,7 @@
+## 6.0.3
+
+* Updated `frame_msg` to `1.0.1` to get the new default autoexposure and white balance limits and initial values
+
 ## 6.0.2
 
 * Updated `frame_ble` to `1.0.1` to add wait for the bluetooth adapter to be on, particularly for iOS since bluetooth startup can be a bit slower

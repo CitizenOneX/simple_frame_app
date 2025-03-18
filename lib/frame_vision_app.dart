@@ -27,18 +27,18 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
   bool _isAutoExposure = true;
 
   // autoexposure/gain parameters
-  int meteringIndex = 2;
+  int meteringIndex = 1;
   final List<String> meteringValues = ['SPOT', 'CENTER_WEIGHTED', 'AVERAGE'];
-  double exposure = 0.18;     // 0.0 <= val <= 1.0
-  double exposureSpeed = 0.5; // 0.0 <= val <= 1.0
-  int shutterLimit = 3072;    // 4 <= val <= 16383
-  int analogGainLimit = 16;   // 1 <= val <= 248
+  double exposure = 0.1;       // 0.0 <= val <= 1.0
+  double exposureSpeed = 0.45; // 0.0 <= val <= 1.0
+  int shutterLimit = 16383;    // 4 <= val <= 16383
+  int analogGainLimit = 16;    // 1 <= val <= 248
   double whiteBalanceSpeed = 0.5;  // 0.0 <= val <= 1.0
-  int rgbGainLimit = 141;     // 0 <= val <= 1023
+  int rgbGainLimit = 287;      // 0 <= val <= 1023
 
   // manual exposure/gain parameters
-  int manualShutter = 3072; // 4 <= val <= 16383
-  int manualAnalogGain = 16; // 1 <= val <= 248
+  int manualShutter = 4096; // 4 <= val <= 16383
+  int manualAnalogGain = 1; // 1 <= val <= 248
   int manualRedGain = 121;  // 0 <= val <= 1023
   int manualGreenGain = 64; // 0 <= val <= 1023
   int manualBlueGain = 140; // 0 <= val <= 1023
