@@ -1,4 +1,4 @@
-Flutter and Lua quickstart app scaffolding and standard library functions for Brilliant Frame development on Android/iOS. (iOS support intended but untested.)
+Flutter and Lua quickstart app scaffolding and standard library functions for Brilliant Frame development on Android/iOS.
 
 ## Images
 ![frameshot1](https://github.com/CitizenOneX/simple_frame_app/raw/main/doc/frameshot1.png)
