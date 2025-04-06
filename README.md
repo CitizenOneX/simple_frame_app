@@ -49,23 +49,23 @@ Phoneside (Flutter/Dart)
 
 ```dart
 // send some ASCII text to Frame
-final text = TxPlainText(msgCode: 0x12, text: 'Hello, Frame!');
-await frame!.sendMessage(text.msgCode, text.pack());
+final text = TxPlainText(text: 'Hello, Frame!');
+await frame!.sendMessage(0x12, text.pack());
 
 // asking Frame to take a photo and send it back
-var takePhoto = TxCameraSettings(msgCode: 0x0d);
-await frame!.sendMessage(takePhoto.msgCode, takePhoto.pack());
+var takePhoto = TxCameraSettings();
+await frame!.sendMessage(0x0d, takePhoto.pack());
 
 // synchronously await the image response encoded as a jpeg
 Uint8List imageData = await RxPhoto(qualityLevel: 50).attach(frame!.dataResponse).first;
 
 // send a custom message and value to the Lua app running on Frame
-final code = TxCode(msgCode: 0x0e, value: 1);
-await frame!.sendMessage(code.msgCode, code.pack());
+final code = TxCode(value: 1);
+await frame!.sendMessage(0x0e, code.pack());
 
 // send a sprite to Frame with an identifying message code
-var sprite = TxSprite.fromPngBytes(msgCode: 0x2F, pngBytes: bytesFromFileOrWeb);
-await frame!.sendMessage(sprite.msgCode, sprite.pack());
+var sprite = TxSprite.fromPngBytes(pngBytes: bytesFromFileOrWeb);
+await frame!.sendMessage(0x2F, sprite.pack());
 ```
 
 Frameside (Lua)

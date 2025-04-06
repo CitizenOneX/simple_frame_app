@@ -1,3 +1,7 @@
+## 7.0.0
+
+* Updated `frame_msg` to `2.0.0`, removing redundant msgCode provided in `TxMsg` constructor - pass the msgCode separately to FrameBle when sending the message, as this transport-level detail doesn't need to be coupled to the rich message contents.
+
 ## 6.0.3
 
 * Updated `frame_msg` to `1.0.1` to get the new default autoexposure and white balance limits and initial values

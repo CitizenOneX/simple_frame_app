@@ -81,8 +81,8 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
     );
 
     // let Frame know to subscribe for taps and send them to us
-    final code = TxCode(msgCode: 0x10, value: 1);
-    await frame!.sendMessage(code.msgCode, code.pack());
+    final code = TxCode(value: 1);
+    await frame!.sendMessage(0x10, code.pack());
 
     // prompt the user to begin tapping or other app-specific setup
     await onRun();
@@ -92,7 +92,6 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
 
   Future<void> updateAutoExpSettings() async {
     final autoExpSettings = TxAutoExpSettings(
-      msgCode: 0x0e,
       meteringIndex: meteringIndex,
       exposure: exposure,
       exposureSpeed: exposureSpeed,
@@ -102,12 +101,11 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
       rgbGainLimit: rgbGainLimit,
     );
 
-    await frame!.sendMessage(autoExpSettings.msgCode, autoExpSettings.pack());
+    await frame!.sendMessage(0x0e, autoExpSettings.pack());
   }
 
   Future<void> updateManualExpSettings() async {
     final manualExpSettings = TxManualExpSettings(
-      msgCode: 0x0f,
       manualShutter: manualShutter,
       manualAnalogGain: manualAnalogGain,
       manualRedGain: manualRedGain,
@@ -115,7 +113,7 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
       manualBlueGain: manualBlueGain,
     );
 
-    await frame!.sendMessage(manualExpSettings.msgCode, manualExpSettings.pack());
+    await frame!.sendMessage(0x0f, manualExpSettings.pack());
   }
 
   Future<void> sendExposureSettings() async {
@@ -171,14 +169,13 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
 
       // send the lua command to request a photo from the Frame based on the current settings
       final captureSettings = TxCaptureSettings(
-        msgCode: 0x0d,
         resolution: currRes,
         qualityIndex: currQualIndex,
         pan: currPan,
         raw: requestRaw,
       );
 
-      await frame!.sendMessage(captureSettings.msgCode, captureSettings.pack());
+      await frame!.sendMessage(0x0d, captureSettings.pack());
 
       // synchronously await the image response (and add jpeg header if necessary)
       Uint8List imageData = await RxPhoto(quality: qualityValues[currQualIndex], resolution: currRes, isRaw: requestRaw, upright: upright).attach(frame!.dataResponse).first;
@@ -217,12 +214,12 @@ mixin FrameVisionAppState<T extends StatefulWidget> on SimpleFrameAppState<T> {
     await onCancel();
 
     // let Frame know to stop sending taps
-    final code = TxCode(msgCode: 0x10, value: 0);
-    await frame!.sendMessage(code.msgCode, code.pack());
+    final code = TxCode(value: 0);
+    await frame!.sendMessage(0x10, code.pack());
 
     // clear the display
-    final plainText = TxPlainText(msgCode: 0x0a, text: ' ');
-    await frame!.sendMessage(plainText.msgCode, plainText.pack());
+    final plainText = TxPlainText(text: ' ');
+    await frame!.sendMessage(0x0a, plainText.pack());
 
     setState(() {
       currentState = ApplicationState.ready;

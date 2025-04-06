@@ -511,12 +511,11 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
     for (var entry in spriteMap.entries) {
       try {
         var sprite = TxSprite.fromPngBytes(
-            msgCode: entry.key,
             pngBytes:
                 Uint8List.sublistView(await rootBundle.load(entry.value)));
 
         // send sprite to Frame with its associated message type
-        await frame!.sendMessage(sprite.msgCode, sprite.pack());
+        await frame!.sendMessage(entry.key, sprite.pack());
         await Future.delayed(const Duration(milliseconds: 200));
       } catch (e) {
         _log.severe('$e');

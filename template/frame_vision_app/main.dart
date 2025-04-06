@@ -41,11 +41,8 @@ class MainAppState extends State<MainApp> with SimpleFrameAppState, FrameVisionA
 
   @override
   Future<void> onRun() async {
-    final plainText = TxPlainText(
-        msgCode: 0x0a,
-        text: '3-Tap: take photo'
-      );
-    await frame!.sendMessage(plainText.msgCode, plainText.pack());
+    final plainText = TxPlainText(text: '3-Tap: take photo');
+    await frame!.sendMessage(0x0a, plainText.pack());
   }
 
   @override
