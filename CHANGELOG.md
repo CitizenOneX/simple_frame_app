@@ -1,3 +1,7 @@
+## 7.1.0
+
+* Updated `frame_ble` to `3.0.0`. While v3.0.0 additionally supports OTA device firmware updates, `SimpleFrameApp` and `FrameVisionApp` don't provide any built-in mechanism to do firmware updates, but users of the framework could make use of it.
+
 ## 7.0.0
 
 * Updated `frame_msg` to `2.0.0`, removing redundant msgCode provided in `TxMsg` constructor - pass the msgCode separately to FrameBle when sending the message, as this transport-level detail doesn't need to be coupled to the rich message contents.
