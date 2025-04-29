@@ -41,7 +41,7 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
   // Use BrilliantBluetooth for communications with Frame
   BrilliantDevice? frame;
   StreamSubscription<BrilliantScannedDevice>? _scanStream;
-  StreamSubscription<BrilliantConnectionState>? _deviceStateSubs;
+  StreamSubscription<BrilliantDevice>? _deviceStateSubs;
   StreamSubscription<List<int>>? _rxAppData;
   StreamSubscription<String>? _rxStdOut;
 
@@ -254,7 +254,7 @@ mixin SimpleFrameAppState<T extends StatefulWidget> on State<T> {
       _log.fine(() => 'Frame connection state change: $bcs');
 
       // notice disconnections and set ApplicationState to reflect that
-      if (bcs == BrilliantConnectionState.disconnected) {
+      if (bcs.state == BrilliantConnectionState.disconnected) {
         currentState = ApplicationState.disconnected;
         _log.fine('Frame disconnected');
         if (mounted) setState(() {});

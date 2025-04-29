@@ -15,7 +15,7 @@ dependencies:
   image: ^4.2.0
   logging: ^1.2.0
   frame_msg: ^2.0.0
-  frame_ble: ^1.0.2
+  frame_ble: ^3.0.0
 
 dev_dependencies:
   flutter_test:
