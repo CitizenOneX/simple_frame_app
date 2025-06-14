@@ -40,6 +40,7 @@ flutter:
   - packages/frame_msg/lua/code.min.lua
   - packages/frame_msg/lua/plain_text.min.lua
   - packages/frame_msg/lua/sprite.min.lua
+  - packages/frame_msg/lua/camera.min.lua
   - assets/frame_app.lua
 ```
 
